@@ -1,0 +1,2760 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programação Centro Cirúrgico - HAC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f2f6f2;
+  --card: #ffffff;
+  --primary: #2e7d32;
+  --primary-dark: #1b5e20;
+  --primary-light: #e8f5e9;
+  --accent: #0a4da2;
+  --accent-light: #e8f0fe;
+  --warning: #e65100;
+  --warning-light: #fff3e0;
+  --danger: #c62828;
+  --danger-light: #ffebee;
+  --text: #1a2e1a;
+  --text-secondary: #5a6e5a;
+  --border: #d0e0d0;
+  --shadow: 0 2px 8px rgba(46,125,50,0.08);
+  --shadow-lg: 0 8px 24px rgba(46,125,50,0.12);
+  --radius: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* HEADER */
+.top-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(27,94,32,0.2);
+}
+.header {
+  background: linear-gradient(to right, #0a0a0a 0%, #1a3a1a 15%, #1b5e20 40%, #2e7d32 100%);
+  color: white;
+  padding: 10px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-logo {
+  height: 60px;
+  margin-right: 16px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.header-sub {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* FIXED VALIDATION BAR */
+.validation-bar {
+  display: none;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
+  padding: 6px 20px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+.validation-bar.show { display: block; }
+.validation-bar.has-error { border-bottom-color: var(--danger); background: #fff8f8; }
+.validation-bar.has-warning { border-bottom-color: var(--warning); background: #fffcf5; }
+.validation-bar.all-ok { border-bottom-color: var(--primary); background: #f5fff5; }
+.validation-bar .vb-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+.validation-bar .vb-items { display: flex; flex-wrap: wrap; gap: 4px; }
+.validation-bar .vb-item {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.header-badge {
+  background: rgba(255,255,255,0.15);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+}
+
+/* TABS */
+.tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
+  padding: 0 20px;
+  gap: 0;
+  overflow-x: auto;
+}
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--primary); }
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* CONTAINER */
+.container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+/* PANELS */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* FORM */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form-group.full { grid-column: 1 / -1; }
+.form-group.span2 { grid-column: span 2; }
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fafbfd;
+  width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(10,77,162,0.1);
+  background: white;
+}
+.form-group input::placeholder { color: #b0bac8; }
+
+.form-group textarea { resize: vertical; min-height: 50px; }
+
+/* RESOURCE TOGGLES */
+.recursos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.recurso-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  user-select: none;
+  background: #fafbfd;
+}
+.recurso-toggle:hover { border-color: var(--primary); color: var(--primary); }
+.recurso-toggle.ativo {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.recurso-toggle .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  transition: background 0.2s;
+}
+.recurso-toggle.ativo .dot { background: var(--primary); }
+
+.recurso-toggle.esgotado {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.recurso-toggle.esgotado .dot { background: var(--danger); }
+.recurso-toggle .disp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.recurso-toggle .disp.alerta { color: var(--warning); }
+.recurso-toggle .disp.cheio { color: var(--danger); }
+
+.btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+#liveValidationCard .live-item {
+  padding: 6px 10px;
+  border-radius: 5px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* BUTTONS */
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); box-shadow: var(--shadow); }
+.btn-success { background: var(--accent); color: white; }
+.btn-success:hover { background: #1b5e20; }
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.btn-outline:hover { background: var(--primary-light); }
+.btn-warning { background: var(--warning); color: white; }
+.btn-warning:hover { background: #bf360c; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #8e0000; }
+.btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 4px; }
+
+/* SALAS */
+.salas-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sala-chip {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid var(--border);
+  user-select: none;
+}
+.sala-chip.ativa {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.sala-chip.fechada {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+  text-decoration: line-through;
+}
+
+/* GRADE */
+.filtro-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filtro-row input,
+.filtro-row select {
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  background: white;
+}
+
+.grade-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.sala-col {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 200px;
+}
+.sala-col-header {
+  background: var(--primary);
+  color: white;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sala-col-header.fechada {
+  background: #78909c;
+}
+.sala-col-body { padding: 10px; }
+
+.cirurgia-card {
+  background: linear-gradient(135deg, #edf4ff, #f8faff);
+  border: 1px solid #d0dfef;
+  border-left: 4px solid var(--primary);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  transition: box-shadow 0.2s, opacity 0.2s, transform 0.2s;
+  cursor: grab;
+  position: relative;
+}
+.cirurgia-card:hover {
+  box-shadow: var(--shadow);
+}
+.cirurgia-card:active { cursor: grabbing; }
+.cirurgia-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.96);
+  box-shadow: none;
+}
+.cirurgia-card .drag-handle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #b0bac8;
+  font-size: 14px;
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+}
+.cirurgia-card .drag-handle:active { cursor: grabbing; }
+
+/* Drag-and-drop zone states */
+.sala-col-body.drag-over {
+  background: var(--primary-light);
+  border: 2px dashed var(--primary);
+  border-radius: 6px;
+  min-height: 100px;
+  transition: background 0.2s;
+}
+.sala-col-body.drag-over-invalid {
+  background: var(--danger-light);
+  border: 2px dashed var(--danger);
+  border-radius: 6px;
+}
+
+/* Toast notification for drag moves */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--primary-dark);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  z-index: 300;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.cirurgia-card.grupo {
+  border-left-color: var(--accent);
+  background: linear-gradient(135deg, #edf7ee, #f8fdf8);
+}
+.cirurgia-card .hora {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.cirurgia-card .paciente-nome {
+  font-weight: 600;
+  color: var(--text);
+}
+.cirurgia-card .detalhe {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.cirurgia-card .tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.tag-recurso { background: #fff3e0; color: #e65100; }
+.tag-convenio { background: #e8f5e9; color: #2e7d32; }
+.tag-extra { background: #fce4ec; color: #c62828; }
+
+.cirurgia-card .actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* LISTA */
+.tabela-wrapper { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  background: var(--primary-light);
+  color: var(--primary);
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid var(--primary);
+  white-space: nowrap;
+}
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tr:hover td { background: #f8faff; }
+tr.cancelado td { text-decoration: line-through; color: #999; }
+tr.suspenso td { color: #e65100; font-style: italic; }
+
+/* STATUS BADGES */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.status-agendado { background: var(--primary-light); color: var(--primary); }
+.status-cancelado { background: var(--danger-light); color: var(--danger); }
+.status-suspenso { background: var(--warning-light); color: var(--warning); }
+
+/* MODAL SIMULAÇÃO */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+}
+.modal h3 { margin-bottom: 12px; color: var(--primary); }
+.modal-alertas { margin: 10px 0; }
+.modal-alerta {
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.alerta-erro { background: var(--danger-light); color: var(--danger); }
+.alerta-aviso { background: var(--warning-light); color: var(--warning); }
+.alerta-ok { background: var(--accent-light); color: var(--accent); }
+.alerta-info { background: #e3f2fd; color: #1565c0; }
+
+/* CONTADORES */
+.counters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.counter-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 120px;
+  box-shadow: var(--shadow);
+}
+.counter-box .num {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--primary);
+}
+.counter-box .lbl {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* EDIT INLINE */
+.editing input {
+  padding: 3px 5px;
+  font-size: 12px;
+  border: 1px solid var(--primary);
+  border-radius: 3px;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
+  .grade-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .grade-grid { grid-template-columns: 1fr; }
+  .header h1 { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-fixed">
+<div class="header">
+  <div class="header-left">
+    <img src="data:image/png;base64,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" alt="HAC" class="header-logo">
+    <div>
+      <h1>Programação Centro Cirúrgico</h1>
+      <span class="header-sub">Hospital Ana Costa — Sua saúde em boas mãos</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-badge" id="headerData"></span>
+    <span class="header-badge" id="headerTotal"></span>
+  </div>
+</div>
+
+<!-- VALIDATION BAR - FIXED -->
+<div class="validation-bar" id="validationBar">
+  <div class="vb-title">⚡ Validação em Tempo Real</div>
+  <div class="vb-items" id="vbItems"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="form">Agendamento</div>
+  <div class="tab" data-tab="grade">Mapa Cirúrgico</div>
+  <div class="tab" data-tab="disponibilidade">Disponibilidade</div>
+  <div class="tab" data-tab="lista">Lista Geral</div>
+  <div class="tab" data-tab="medicos">Médicos</div>
+  <div class="tab" data-tab="convenios">Convênios</div>
+  <div class="tab" data-tab="tuss">TUSS</div>
+  <div class="tab" data-tab="equipamentos">Equipamentos</div>
+  <div class="tab" data-tab="salas">Salas</div>
+</div>
+</div>
+
+<div class="container">
+
+  <!-- ========== PAINEL AGENDAMENTO ========== -->
+  <div class="panel active" id="panel-form">
+
+    <div class="card">
+      <div class="card-title">Dados da Cirurgia</div>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="data" onchange="validarLive()">
+        </div>
+        <div class="form-group">
+          <label>Horário</label>
+          <input type="time" id="horario" onchange="validarLive()">
+        </div>
+        <div class="form-group">
+          <label>Tempo Estimado (min)</label>
+          <input type="number" id="tempo" placeholder="120" oninput="validarLive()">
+        </div>
+        <div class="form-group">
+          <label>Sala</label>
+          <select id="sala" onchange="validarLive()"></select>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Identificação do Paciente</div>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Nº Identificação / Prontuário</label>
+          <input type="text" id="identificacao" placeholder="Nº prontuário">
+        </div>
+        <div class="form-group span2">
+          <label>Nome do Paciente</label>
+          <input type="text" id="paciente" placeholder="Nome completo">
+        </div>
+        <div class="form-group">
+          <label>Data de Nascimento</label>
+          <input type="date" id="dataNasc" onchange="calcularIdade()">
+        </div>
+
+      </div>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="form-group">
+          <label>Idade <span style="font-size:10px;color:var(--accent);font-weight:400">(calculada automaticamente)</span></label>
+          <input type="text" id="idade" placeholder="Preenchido auto" readonly style="background:#f0f3f8">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Equipe Médica</div>
+      <div class="form-grid">
+
+        <div class="form-group" style="position:relative">
+          <label>CRM <span style="font-size:10px;color:var(--accent);font-weight:400">(digite e pressione Tab ou Enter)</span></label>
+          <input type="text" id="crm" placeholder="Nº CRM" onkeydown="if(event.key==='Enter'||event.key==='Tab'){buscarCRM()}" onblur="buscarCRM()">
+          <div id="crmStatus" style="font-size:10px;margin-top:2px;min-height:14px"></div>
+        </div>
+        <div class="form-group span2">
+          <label>Cirurgião</label>
+          <input type="text" id="medico" placeholder="Nome do cirurgião">
+        </div>
+        <div class="form-group">
+          <label>Especialidade</label>
+          <input type="text" id="especialidade" placeholder="Ex: Ortopedia">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Procedimento</div>
+      <div class="form-grid">
+
+        <div class="form-group" style="position:relative">
+          <label>Código TUSS <span style="font-size:10px;color:var(--accent);font-weight:400">(digite código ou busque por nome)</span></label>
+          <input type="text" id="codigoTuss" placeholder="Código ou busca..." oninput="buscarTUSS()" onfocus="buscarTUSS()">
+          <div id="tussDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:white;border:1.5px solid var(--primary);border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg)"></div>
+          <div id="tussStatus" style="font-size:10px;margin-top:2px;min-height:14px"></div>
+        </div>
+        <div class="form-group span2">
+          <label>Descrição do Procedimento</label>
+          <input type="text" id="procedimento" placeholder="Preenchido ao selecionar TUSS">
+        </div>
+        <div class="form-group">
+          <label>Lateralidade</label>
+          <select id="lateralidade">
+            <option value="">N/A</option>
+            <option value="D">Direita</option>
+            <option value="E">Esquerda</option>
+            <option value="B">Bilateral</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Convênio / Faturamento</div>
+      <div class="form-grid">
+
+        <div class="form-group" style="position:relative">
+          <label>Código Convênio <span style="font-size:10px;color:var(--accent);font-weight:400">(digite a sigla)</span></label>
+          <input type="text" id="codigoConvenio" placeholder="Ex: SD01" oninput="buscarConvenio()" onblur="setTimeout(()=>document.getElementById('convDropdown').style.display='none',200)">
+          <div id="convDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:white;border:1.5px solid var(--primary);border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow-lg)"></div>
+        </div>
+        <div class="form-group">
+          <label>Convênio</label>
+          <input type="text" id="convenio" placeholder="Preenchido auto" readonly style="background:#f0f3f8">
+        </div>
+        <div class="form-group">
+          <label>Grupo</label>
+          <input type="text" id="convenioGrupo" placeholder="Grupo" readonly style="background:#f0f3f8">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recursos e Equipamentos</div>
+      <p style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Disponibilidade atualiza em tempo real conforme a data selecionada.</p>
+      <div class="recursos-grid" id="recursosGrid"></div>
+
+      <div style="margin-top:12px">
+        <div class="card-title" style="font-size:13px">Materiais / Bandejas Especiais</div>
+        <div class="recursos-grid" id="materiaisGrid"></div>
+      </div>
+
+      <div class="form-grid" style="margin-top:12px">
+        <div class="form-group full">
+          <label>Observações / OPME / Materiais Especiais</label>
+          <textarea id="observacoes" rows="2" placeholder="Materiais especiais, OPME, observações..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="simular()">⚡ Simular Completo</button>
+      <button class="btn btn-success" id="btnConfirmar" onclick="salvar()">✓ Confirmar Agendamento</button>
+      <button class="btn btn-outline" onclick="limparForm()">Limpar</button>
+      <button class="btn btn-outline" onclick="gerarPDF()">📄 PDF Mapa</button>
+      <button class="btn btn-outline" onclick="pdfOcorrencias()">📋 PDF Ocorrências</button>
+    </div>
+
+  </div>
+
+  <!-- ========== PAINEL MAPA CIRÚRGICO ========== -->
+  <div class="panel" id="panel-grade">
+
+    <div class="card">
+      <div class="card-title">Filtros</div>
+      <div class="filtro-row">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="filtroData" onchange="desenhar()">
+        </div>
+        <div class="form-group">
+          <label>Grupo</label>
+          <select id="filtroGrupo" onchange="desenhar()">
+            <option value="todos">Todos</option>
+            <option value="grupo">Grupo Amil/ACS</option>
+            <option value="extra">Extra Grupo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Especialidade</label>
+          <input type="text" id="filtroEspec" placeholder="Todas" oninput="desenhar()">
+        </div>
+        <div class="form-group">
+          <label>Cirurgião</label>
+          <input type="text" id="filtroMedico" placeholder="Todos" oninput="desenhar()">
+        </div>
+      </div>
+    </div>
+
+    <div class="counters" id="counters"></div>
+
+    <div class="grade-grid" id="grade"></div>
+  </div>
+
+  <!-- ========== PAINEL LISTA ========== -->
+  <div class="panel" id="panel-lista">
+
+    <div class="card">
+      <div class="card-title">Filtros da Lista</div>
+      <div class="filtro-row">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="filtroListaData" onchange="renderLista()">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="filtroListaStatus" onchange="renderLista()">
+            <option value="todos">Todos</option>
+            <option value="agendado">Agendados</option>
+            <option value="cancelado">Cancelados</option>
+            <option value="suspenso">Suspensos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabela-wrapper">
+        <table id="tabelaLista">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Sala</th>
+              <th>Pront.</th>
+              <th>Paciente</th>
+              <th>Idade</th>
+              <th>Cirurgião</th>
+              <th>CRM</th>
+              <th>Procedimento</th>
+              <th>TUSS</th>
+              <th>Convênio</th>
+              <th>Grupo</th>
+              <th>Tempo</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PAINEL MÉDICOS ========== -->
+  <div class="panel" id="panel-medicos">
+
+    <div class="card">
+      <div class="card-title">Cadastro de Médicos</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        Base carregada do arquivo <b>medicos_base.js</b> (gerado a partir do Excel). Novos médicos adicionados aqui são salvos localmente e podem ser exportados de volta para Excel.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>CRM</label>
+          <input type="text" id="cadMedCRM" placeholder="Nº CRM">
+        </div>
+        <div class="form-group span2">
+          <label>Nome Completo</label>
+          <input type="text" id="cadMedNome" placeholder="Nome completo do médico">
+        </div>
+        <div class="form-group">
+          <label>Especialidade</label>
+          <input type="text" id="cadMedEspec" placeholder="Ex: Ortopedia">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="cadastrarMedico()">✓ Cadastrar Médico</button>
+        <button class="btn btn-outline" onclick="exportarMedicosExcel()">📥 Exportar Excel Atualizado</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Médicos Cadastrados (<span id="totalMedicos">0</span>) — Novos: <span id="totalNovos" style="color:var(--warning)">0</span></div>
+      <div style="margin-bottom:12px">
+        <input type="text" id="buscaMedico" placeholder="Buscar por CRM ou nome..." oninput="renderMedicos()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;width:300px;font-family:'DM Sans',sans-serif">
+      </div>
+      <div class="tabela-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>CRM</th>
+              <th>Nome</th>
+              <th>UF</th>
+              <th>Especialidade</th>
+              <th>Origem</th>
+              <th>Cirurgias</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaMedicos"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== PAINEL DISPONIBILIDADE ========== -->
+  <div class="panel" id="panel-disponibilidade">
+    <div class="card">
+      <div class="card-title">Relatório de Disponibilidade por Período</div>
+      <div class="filtro-row">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="dispData" onchange="renderDisponibilidade()">
+        </div>
+      </div>
+    </div>
+    <div id="dispContainer"></div>
+  </div>
+
+  <!-- ========== PAINEL EQUIPAMENTOS ========== -->
+  <div class="panel" id="panel-equipamentos">
+    <div class="card">
+      <div class="card-title">Gerenciar Disponibilidade de Equipamentos e Materiais</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        Desative equipamentos/caixas temporariamente (manutenção, esterilização, etc). Equipamentos desativados ficam bloqueados no agendamento.
+      </p>
+      <div id="painelEquipamentos"></div>
+    </div>
+  </div>
+
+  <!-- ========== PAINEL CONVÊNIOS ========== -->
+  <div class="panel" id="panel-convenios">
+    <div class="card">
+      <div class="card-title">Cadastro de Convênios</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        Base carregada do arquivo <b>convenio_base.js</b>. Novos convênios adicionados ficam salvos localmente e podem ser exportados.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Sigla</label>
+          <input type="text" id="cadConvSigla" placeholder="Ex: SD01">
+        </div>
+        <div class="form-group">
+          <label>Nome do Convênio</label>
+          <input type="text" id="cadConvNome" placeholder="Nome completo">
+        </div>
+        <div class="form-group">
+          <label>Grupo</label>
+          <select id="cadConvGrupo">
+            <option value="Mercado">Mercado</option>
+            <option value="Amil">Amil</option>
+            <option value="Ana Costa">Ana Costa</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="cadastrarConvenio()">✓ Cadastrar Convênio</button>
+        <button class="btn btn-outline" onclick="exportarConveniosExcel()">📥 Exportar Excel</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Convênios Cadastrados (<span id="totalConvenios">0</span>) — Novos: <span id="totalConvNovos" style="color:var(--warning)">0</span></div>
+      <div style="margin-bottom:12px">
+        <input type="text" id="buscaConvenio" placeholder="Buscar por sigla ou nome..." oninput="renderConvenios()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;width:300px;font-family:'DM Sans',sans-serif">
+      </div>
+      <div class="tabela-wrapper">
+        <table>
+          <thead>
+            <tr><th>Sigla</th><th>Convênio</th><th>Grupo</th><th>Origem</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="tabelaConvenios"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PAINEL TUSS ========== -->
+  <div class="panel" id="panel-tuss">
+    <div class="card">
+      <div class="card-title">Cadastro de Procedimentos TUSS</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        Base carregada do arquivo <b>tuss_base.js</b> (4.408 procedimentos). Novos adicionados ficam salvos localmente e podem ser exportados.
+      </p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Código TUSS</label>
+          <input type="text" id="cadTussCod" placeholder="Ex: 30101012">
+        </div>
+        <div class="form-group span2">
+          <label>Descrição do Procedimento</label>
+          <input type="text" id="cadTussDesc" placeholder="Descrição completa">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="cadastrarTUSS()">✓ Cadastrar TUSS</button>
+        <button class="btn btn-outline" onclick="exportarTUSSExcel()">📥 Exportar Excel</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Procedimentos TUSS (<span id="totalTuss">0</span>) — Novos: <span id="totalTussNovos" style="color:var(--warning)">0</span></div>
+      <div style="margin-bottom:12px">
+        <input type="text" id="buscaTuss" placeholder="Buscar por código ou descrição..." oninput="renderTUSSList()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;width:400px;font-family:'DM Sans',sans-serif">
+      </div>
+      <div class="tabela-wrapper">
+        <table>
+          <thead>
+            <tr><th>Código</th><th>Descrição</th><th>Origem</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="tabelaTuss"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PAINEL SALAS ========== -->
+  <div class="panel" id="panel-salas">
+    <div class="card">
+      <div class="card-title">Controle de Salas Cirúrgicas</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        Clique para ativar ou desativar salas. Salas fechadas não aparecem no agendamento.
+      </p>
+      <div class="salas-row" id="painelSalas"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL SIMULAÇÃO -->
+<div class="modal-overlay" id="modalSim">
+  <div class="modal">
+    <h3>Resultado da Simulação</h3>
+    <div class="modal-alertas" id="simAlertas"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="fecharModal()">Fechar</button>
+      <button class="btn btn-success" onclick="fecharModal();salvar()">Confirmar mesmo assim</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ============ TABS (executa imediatamente) ============
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    let panel = document.getElementById('panel-'+tab.dataset.tab);
+    if(panel) panel.classList.add('active');
+    try {
+      if(tab.dataset.tab==='grade') desenhar();
+      if(tab.dataset.tab==='lista') renderLista();
+      if(tab.dataset.tab==='medicos') renderMedicos();
+      if(tab.dataset.tab==='convenios') renderConvenios();
+      if(tab.dataset.tab==='tuss') renderTUSSList();
+      if(tab.dataset.tab==='disponibilidade') renderDisponibilidade();
+      if(tab.dataset.tab==='equipamentos') renderEquipamentos();
+    } catch(e){ console.warn('Tab render error:', e); }
+  });
+});
+
+// ============ SUPABASE CONFIG ============
+const SUPABASE_URL = 'https://mgyypmusksyvmtihklkx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neXlwbXVza3N5dm10aWhrbGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNzAyNTMsImV4cCI6MjA4ODk0NjI1M30.yD5yAN0vG6oMUuO7_NqB-6QcD9fUX3cc5TFkTajoNHU';
+
+let sb;
+try {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.error('Erro ao criar cliente Supabase:', e);
+  alert('Erro ao conectar ao Supabase. Verifique a conexão com internet.');
+}
+
+// ============ DADOS (carregados do Supabase) ============
+let dados = [];
+let salas = {};
+let MEDICOS_CACHE = [];
+let TUSS_CACHE = [];
+let CONVENIO_CACHE = [];
+
+// ============ SUPABASE DATA LAYER ============
+const DB = {
+  // --- CIRURGIAS ---
+  async loadCirurgias(){
+    const {data,error} = await sb.from('cirurgias').select('*').order('data').order('horario');
+    if(error){ console.error('Erro cirurgias:', error); return; }
+    dados = data.map(c=>({
+      ...c,
+      horario: c.horario ? c.horario.substring(0,5) : '',
+      sala: c.sala,
+      recursos: c.recursos || {},
+      cancelado: c.cancelado || false,
+      suspenso: c.suspenso || false,
+    }));
+  },
+
+  async salvarCirurgia(c){
+    const row = {
+      data: c.data, horario: c.horario, tempo: c.tempo, sala: c.sala,
+      identificacao: c.identificacao, paciente: c.paciente,
+      data_nasc: c.dataNasc || null, idade: c.idade,
+      medico: c.medico, crm: c.crm, especialidade: c.especialidade,
+      procedimento: c.procedimento, codigo_tuss: c.codigoTuss,
+      lateralidade: c.lateralidade, convenio: c.convenio,
+      codigo_convenio: c.codigoConvenio, convenio_grupo: c.convenioGrupo,
+      recursos: c.recursos, observacoes: c.observacoes,
+      cancelado: false, suspenso: false
+    };
+    const {data,error} = await sb.from('cirurgias').insert(row).select();
+    if(error){ alert('Erro ao salvar: '+error.message); return null; }
+    return data[0];
+  },
+
+  async updateCirurgia(id, fields){
+    fields.atualizado_em = new Date().toISOString();
+    const {error} = await sb.from('cirurgias').update(fields).eq('id', id);
+    if(error) console.error('Erro update:', error);
+  },
+
+  async deleteCirurgia(id){
+    const {error} = await sb.from('cirurgias').delete().eq('id', id);
+    if(error) console.error('Erro delete:', error);
+  },
+
+  // --- SALAS ---
+  async loadSalas(){
+    const {data,error} = await sb.from('salas').select('*').order('numero');
+    if(error){ console.error('Erro salas:', error); return; }
+    salas = {};
+    data.forEach(s => { salas[s.numero] = s.ativa; });
+  },
+
+  async toggleSala(num, ativa){
+    await sb.from('salas').update({ativa}).eq('numero', num);
+  },
+
+  // --- MÉDICOS ---
+  async loadMedicos(){
+    const {data,error} = await sb.from('medicos').select('*').order('nome');
+    if(error){ console.error('Erro medicos:', error); return; }
+    MEDICOS_CACHE = data;
+  },
+
+  async upsertMedico(m){
+    const {error} = await sb.from('medicos').upsert({
+      crm: m.crm, nome: m.nome, uf: m.uf||'SP',
+      especialidade: m.especialidade||'', origem: m.origem||'manual'
+    }, {onConflict:'crm'});
+    if(error) console.error('Erro medico:', error);
+  },
+
+  async deleteMedico(crm){
+    await sb.from('medicos').delete().eq('crm', crm);
+  },
+
+  // --- TUSS ---
+  async loadTUSS(){
+    const {data,error} = await sb.from('tuss').select('*').order('codigo');
+    if(error){ console.error('Erro tuss:', error); return; }
+    TUSS_CACHE = data;
+  },
+
+  async upsertTUSS(t){
+    const {error} = await sb.from('tuss').upsert({
+      codigo: t.cod, descricao: t.desc, origem: t.origem||'manual'
+    }, {onConflict:'codigo'});
+    if(error) console.error('Erro tuss:', error);
+  },
+
+  async deleteTUSS(codigo){
+    await sb.from('tuss').delete().eq('codigo', codigo);
+  },
+
+  // --- CONVÊNIOS ---
+  async loadConvenios(){
+    const {data,error} = await sb.from('convenios').select('*').order('sigla');
+    if(error){ console.error('Erro convenios:', error); return; }
+    CONVENIO_CACHE = data;
+  },
+
+  async upsertConvenio(c){
+    const {error} = await sb.from('convenios').upsert({
+      sigla: c.sigla, nome: c.nome, grupo: c.grupo||'', origem: c.origem||'manual'
+    }, {onConflict:'sigla'});
+    if(error) console.error('Erro convenio:', error);
+  },
+
+  async deleteConvenio(sigla){
+    await sb.from('convenios').delete().eq('sigla', sigla);
+  },
+
+  // --- EQUIPAMENTOS ---
+  async loadEquipConfig(){
+    const {data} = await sb.from('equipamentos_config').select('*');
+    if(data) data.forEach(e=>{ equipDesativados[e.recurso] = e.desativado; });
+  },
+
+  async saveEquipConfig(recurso, desativado){
+    await sb.from('equipamentos_config').upsert({
+      recurso, desativado, atualizado_em: new Date().toISOString()
+    }, {onConflict:'recurso'});
+  }
+};
+
+// ============ SALAS ============
+function renderSalas(){
+  let p = document.getElementById("painelSalas");
+  p.innerHTML = "";
+  for(let i=1;i<=9;i++){
+    let chip = document.createElement("div");
+    chip.className = "sala-chip " + (salas[i]?"ativa":"fechada");
+    chip.innerText = "Sala " + i + (salas[i]?" ● Ativa":" ✕ Fechada");
+    chip.onclick = async () => {
+      salas[i] = !salas[i];
+      await DB.toggleSala(i, salas[i]);
+      renderSalas();
+      carregarSelectSala();
+    };
+    p.appendChild(chip);
+  }
+}
+
+function carregarSelectSala(){
+  let sel = document.getElementById("sala");
+  sel.innerHTML = '<option value="">Selecione</option>';
+  for(let i=1;i<=9;i++){
+    if(salas[i]){
+      let opt = document.createElement("option");
+      opt.value = "Sala "+i;
+      opt.text = "Sala "+i;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+// ============ CONVÊNIO GRUPO ============
+function grupoConvenio(c){
+  if(typeof c === 'object' && c !== null){
+    let g = (c.convenioGrupo || c.convenio_grupo || '').toLowerCase();
+    if(g === 'amil' || g === 'ana costa') return 'grupo';
+    let n = (c.convenio || '').toLowerCase();
+    if(n.includes('amil')||n.includes('acs')||n.includes('ana costa')) return 'grupo';
+    return 'extra';
+  }
+  if(!c) return 'extra';
+  let n = c.toLowerCase();
+  if(n.includes('amil')||n.includes('acs')||n.includes('ana costa')) return 'grupo';
+  return 'extra';
+}
+
+// ============ REGRAS DO CENTRO CIRÚRGICO ============
+const REGRAS = {
+  intervalo_min: 60,
+  limite_manha: 720,
+  limite_tarde: 720,
+  diario: {
+    video:    { max: 5, label: 'Vídeo' },
+    uti:      { max: 3, label: 'Reserva UTI' },
+    ultracision: { max: 2, label: 'Ultracision' },
+    microscopio: { max: 2, label: 'Microscópio' },
+    cx_adenoamigdalectomia: { max: 4, label: 'Cx Adenoamigdalectomia' },
+    cx_septoplastia:        { max: 3, label: 'Cx Septoplastia' },
+    cx_micro_laringe:       { max: 1, label: 'Cx Micro Laringe/Endonasal' },
+    bandeja_video_cir:      { max: 6, label: 'Bandeja Vídeo Cir.' },
+    histeroscopia:          { max: 3, label: 'Histeroscopia' },
+    urologia_russer:        { max: 1, label: 'Urologia Russer (1 rack vídeo)' },
+  },
+  simultaneo_periodo: {
+    escopia: { max: 3, label: 'Escopia' },
+  }
+};
+
+// Override de limites por admin (ex: UTI extra autorizado)
+let limiteOverrides = JSON.parse(localStorage.getItem("limiteOverrides")) || {};
+// formato: { "2026-03-12": { "uti": 5 } }
+
+function getLimite(recurso, data){
+  let base = REGRAS.diario[recurso] || REGRAS.simultaneo_periodo[recurso];
+  if(!base) return null;
+  let max = base.max;
+  if(data && limiteOverrides[data] && limiteOverrides[data][recurso] !== undefined){
+    max = limiteOverrides[data][recurso];
+  }
+  return max;
+}
+
+function solicitarOverrideUTI(){
+  let data = document.getElementById("data").value;
+  if(!data){ alert('Selecione a data primeiro.'); return; }
+  let senha = prompt('🔒 Autorização administrativa necessária.\nDigite a senha para aumentar o limite de UTI para hoje:');
+  if(senha === 'admin2026'){
+    let novoLimite = parseInt(prompt('Novo limite de UTI para '+formatDate(data)+' (atual: '+getLimite('uti',data)+'):'));
+    if(novoLimite && novoLimite > 0){
+      if(!limiteOverrides[data]) limiteOverrides[data] = {};
+      limiteOverrides[data].uti = novoLimite;
+      localStorage.setItem("limiteOverrides", JSON.stringify(limiteOverrides));
+      renderRecursosGrid();
+      validarLive();
+      showToast('✓ Limite UTI alterado para '+novoLimite+' em '+formatDate(data));
+    }
+  } else if(senha !== null){
+    alert('❌ Senha incorreta.');
+  }
+}
+
+function getPeriodo(horarioMin){
+  return horarioMin < REGRAS.limite_manha ? 'manha' : 'tarde';
+}
+
+function cirurgiasDoDia(data, excluirIdx){
+  return dados.filter((c,i) =>
+    !c.cancelado && !c.suspenso && c.data === data && i !== excluirIdx
+  );
+}
+
+function contarRecursoDia(lista, recurso){
+  if(recurso === 'video'){
+    // Vídeos são por SALA - conta salas distintas que usam vídeo
+    let salasComVideo = new Set();
+    lista.forEach(c => { if(c.recursos && c.recursos.video) salasComVideo.add(c.sala); });
+    return salasComVideo.size;
+  }
+  return lista.filter(c => c.recursos && c.recursos[recurso]).length;
+}
+
+function contarSimultaneosPeriodo(lista, recurso, periodo){
+  return lista.filter(c => {
+    if(!c.recursos || !c.recursos[recurso]) return false;
+    let min = toMin(c.horario);
+    return getPeriodo(min) === periodo;
+  }).length;
+}
+
+function encontrarSalasLivres(data, horarioMin, tempoMin, excluirSala){
+  let fim = horarioMin + tempoMin;
+  let livres = [];
+  for(let s=1; s<=9; s++){
+    if(!salas[s]) continue;
+    let salaName = 'Sala '+s;
+    if(salaName === excluirSala) continue;
+    let conflito = false;
+    dados.filter(c=>!c.cancelado&&!c.suspenso&&c.data===data&&c.sala===salaName).forEach(x=>{
+      let xi = toMin(x.horario);
+      let xf = xi + (x.tempo||60) + REGRAS.intervalo_min;
+      if(horarioMin < xf && fim > (xi - REGRAS.intervalo_min)) conflito = true;
+    });
+    if(!conflito) livres.push(salaName);
+  }
+  return livres;
+}
+
+function toMin(h){ let p=h.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
+
+function minToH(m){
+  let h = Math.floor(m/60);
+  let min = m%60;
+  return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
+}
+
+// ============ RECURSOS DINÂMICOS ============
+let recursosAtivos = {};
+
+// Definição dos toggles com labels
+const RECURSOS_EQUIPAMENTOS = [
+  {id:'video', label:'Vídeo'},
+  {id:'escopia', label:'Escopia'},
+  {id:'microscopio', label:'Microscópio'},
+  {id:'ultracision', label:'Ultracision'},
+  {id:'uti', label:'Reserva UTI'},
+  {id:'transfusao', label:'Transfusão'},
+  {id:'sangue', label:'Reserva Sangue'},
+  {id:'congelacao', label:'Congelação'},
+  {id:'rx', label:'Raio-X'},
+];
+const RECURSOS_MATERIAIS = [
+  {id:'cx_adenoamigdalectomia', label:'Cx Adenoamigdalectomia'},
+  {id:'cx_septoplastia', label:'Cx Septoplastia'},
+  {id:'cx_micro_laringe', label:'Cx Micro Laringe/Endonasal'},
+  {id:'otica_otorrino', label:'Ótica Otorrino'},
+  {id:'bandeja_video_cir', label:'Bandeja Vídeo Cir.'},
+  {id:'histeroscopia', label:'Histeroscopia'},
+  {id:'urologia_russer', label:'Urologia Russer'},
+];
+
+// Equipamentos desativados (indisponibilidade temporária)
+let equipDesativados = {}; // Loaded from Supabase via DB.loadEquipConfig()
+
+function renderRecursosGrid(){
+  let data = document.getElementById("data").value;
+  let diaList = data ? cirurgiasDoDia(data, -1) : [];
+
+  function buildToggle(r){
+    let usado = contarRecursoDia(diaList, r.id);
+    let max = getLimite(r.id, data);
+    let disp = max !== null ? (max - usado) : null;
+    let esgotado = disp !== null && disp <= 0;
+    let ativo = recursosAtivos[r.id];
+    let desativado = equipDesativados[r.id];
+
+    let cls = 'recurso-toggle';
+    if(desativado) cls += ' esgotado';
+    else if(ativo) cls += ' ativo';
+    else if(esgotado) cls += ' esgotado';
+
+    let dispHtml = '';
+    if(desativado){
+      dispHtml = '<span class="disp cheio">INDISP.</span>';
+    } else if(max !== null){
+      let dispCls = 'disp';
+      if(disp <= 0) dispCls += ' cheio';
+      else if(disp === 1) dispCls += ' alerta';
+      dispHtml = '<span class="'+dispCls+'">'+(ativo ? (usado+1)+'/'+max : disp+' disp.'  )+'</span>';
+    }
+
+    return '<div class="'+cls+'" data-recurso="'+r.id+'" onclick="toggleRecurso(this)">'+
+      '<span class="dot"></span> '+r.label+' '+dispHtml+'</div>';
+  }
+
+  let equipHtml = RECURSOS_EQUIPAMENTOS.map(buildToggle).join('');
+  // Add UTI override button
+  equipHtml += '<div class="recurso-toggle" onclick="solicitarOverrideUTI()" style="border-style:dashed;cursor:pointer" title="Aumentar limite UTI com senha admin"><span class="dot" style="background:var(--warning)"></span> 🔒 Liberar UTI Extra</div>';
+  document.getElementById("recursosGrid").innerHTML = equipHtml;
+
+  document.getElementById("materiaisGrid").innerHTML = RECURSOS_MATERIAIS.map(buildToggle).join('');
+}
+
+function toggleRecurso(el){
+  let r = el.dataset.recurso;
+  if(!r) return;
+  let data = document.getElementById("data").value;
+  let diaList = data ? cirurgiasDoDia(data, -1) : [];
+
+  // If desativado, block
+  if(equipDesativados[r]){
+    showToast('🚫 '+r+' está indisponível (desativado)');
+    return;
+  }
+
+  // If trying to activate and it's full, block
+  if(!el.classList.contains('ativo')){
+    let max = getLimite(r, data);
+    if(max !== null){
+      let usado = contarRecursoDia(diaList, r);
+      if(usado >= max){
+        let regra = REGRAS.diario[r] || REGRAS.simultaneo_periodo[r] || {label:r};
+        showToast('🚫 '+regra.label+' esgotado ('+usado+'/'+max+')');
+        return;
+      }
+    }
+  }
+
+  el.classList.toggle('ativo');
+  recursosAtivos[r] = el.classList.contains('ativo');
+  renderRecursosGrid();
+  validarLive();
+}
+
+// ============ COLETAR FORM ============
+function coletarForm(){
+  return {
+    data: document.getElementById("data").value,
+    horario: document.getElementById("horario").value,
+    tempo: parseInt(document.getElementById("tempo").value)||0,
+    sala: document.getElementById("sala").value,
+    identificacao: document.getElementById("identificacao").value,
+    paciente: document.getElementById("paciente").value,
+    dataNasc: document.getElementById("dataNasc").value,
+    idade: document.getElementById("idade").value,
+    medico: document.getElementById("medico").value,
+    crm: document.getElementById("crm").value,
+    especialidade: document.getElementById("especialidade").value,
+    procedimento: document.getElementById("procedimento").value,
+    codigoTuss: document.getElementById("codigoTuss").value,
+    lateralidade: document.getElementById("lateralidade").value,
+    convenio: document.getElementById("convenio").value,
+    codigoConvenio: document.getElementById("codigoConvenio").value,
+    convenioGrupo: document.getElementById("convenioGrupo").value,
+    recursos: {...recursosAtivos},
+    observacoes: document.getElementById("observacoes").value,
+    cancelado: false,
+    suspenso: false,
+    criadoEm: new Date().toISOString()
+  };
+}
+
+function limparForm(){
+  ['data','horario','tempo','sala','identificacao','paciente','dataNasc','idade',
+   'medico','crm','especialidade','procedimento','codigoTuss',
+   'lateralidade','convenio','codigoConvenio','convenioGrupo','observacoes'
+  ].forEach(id => {
+    let el = document.getElementById(id);
+    if(!el) return;
+    if(el.tagName==='SELECT') el.selectedIndex=0;
+    else el.value = '';
+  });
+  recursosAtivos = {};
+  renderRecursosGrid();
+  document.getElementById("validationBar").className='validation-bar';
+  document.getElementById("vbItems").innerHTML='';
+  document.getElementById("btnConfirmar").classList.remove('disabled');
+  let crmSt = document.getElementById("crmStatus");
+  if(crmSt) crmSt.innerHTML='';
+}
+
+// ============ VALIDAÇÃO EM TEMPO REAL ============
+let liveTimeout = null;
+
+function validarLive(){
+  // Debounce
+  clearTimeout(liveTimeout);
+  liveTimeout = setTimeout(_validarLive, 150);
+  // Also refresh recursos grid counters
+  renderRecursosGrid();
+}
+
+function _validarLive(){
+  let data = document.getElementById("data").value;
+  let horario = document.getElementById("horario").value;
+  let tempo = parseInt(document.getElementById("tempo").value)||0;
+  let sala = document.getElementById("sala").value;
+
+  let bar = document.getElementById("validationBar");
+  let container = document.getElementById("vbItems");
+  let btn = document.getElementById("btnConfirmar");
+
+  // Need at least data+horario+sala to validate
+  if(!data || !horario || !sala){
+    bar.className='validation-bar';
+    btn.classList.remove('disabled');
+    return;
+  }
+
+  bar.className='validation-bar show';
+  let alertas = [];
+  let diaList = cirurgiasDoDia(data, -1);
+  let ini = toMin(horario);
+  let fim = ini + (tempo||60);
+  let periodo = getPeriodo(ini);
+
+  // 1. Conflito de horário
+  let mesmaSala = diaList.filter(x => x.sala === sala);
+  mesmaSala.forEach(x => {
+    let xi = toMin(x.horario);
+    let xf = xi + (x.tempo||60);
+    if(ini < xf && fim > xi){
+      alertas.push({tipo:'erro', msg:'⏰ Sobreposição com <b>'+x.paciente+'</b> ('+x.horario+'-'+minToH(xf)+') na '+sala});
+    }
+  });
+
+  // 2. Intervalo de 1h
+  mesmaSala.forEach(x => {
+    let xi = toMin(x.horario);
+    let xf = xi + (x.tempo||60);
+    let gap1 = ini - xf;
+    let gap2 = xi - fim;
+    if(gap1 >= 0 && gap1 < REGRAS.intervalo_min){
+      alertas.push({tipo:'aviso', msg:'⏱️ Apenas '+gap1+'min de intervalo após <b>'+x.paciente+'</b>. Recomendado: '+REGRAS.intervalo_min+'min'});
+    }
+    if(gap2 >= 0 && gap2 < REGRAS.intervalo_min){
+      alertas.push({tipo:'aviso', msg:'⏱️ Apenas '+gap2+'min antes de <b>'+x.paciente+'</b>. Recomendado: '+REGRAS.intervalo_min+'min'});
+    }
+  });
+
+  // 3. Sugerir salas livres se conflito
+  if(alertas.some(a => a.msg.includes('Sobreposição'))){
+    let livres = encontrarSalasLivres(data, ini, tempo||60, sala);
+    if(livres.length > 0){
+      alertas.push({tipo:'info', msg:'💡 Salas livres nesse horário: <b>' + livres.join(', ') + '</b>'});
+    } else {
+      alertas.push({tipo:'erro', msg:'❌ Nenhuma sala disponível nesse horário'});
+    }
+  }
+
+  // 4. Recursos selecionados
+  let recursosUsados = Object.keys(recursosAtivos).filter(k => recursosAtivos[k]);
+  recursosUsados.forEach(r => {
+    // Diário
+    if(REGRAS.diario[r]){
+      let usado = contarRecursoDia(diaList, r);
+      let max = getLimite(r, data);
+      let regra = REGRAS.diario[r];
+      if(usado >= max){
+        alertas.push({tipo:'erro', msg:'🚫 <b>'+regra.label+'</b>: esgotado ('+usado+'/'+max+')'});
+      }
+    }
+    // Simultâneo por período
+    if(REGRAS.simultaneo_periodo[r]){
+      let regra = REGRAS.simultaneo_periodo[r];
+      let max = getLimite(r, data);
+      let usadoPeriodo = contarSimultaneosPeriodo(diaList, r, periodo);
+      let periodoLabel = periodo==='manha'?'Manhã':'Tarde';
+      if(usadoPeriodo >= max){
+        alertas.push({tipo:'erro', msg:'🚫 <b>'+regra.label+'</b> — '+periodoLabel+': esgotado ('+usadoPeriodo+'/'+max+')'});
+      }
+    }
+    // Desativado
+    if(equipDesativados[r]){
+      alertas.push({tipo:'erro', msg:'🚫 <b>'+r+'</b> está indisponível (desativado)'});
+    }
+  });
+
+  // 5. Micro laringe warning
+  if(recursosAtivos.cx_micro_laringe){
+    let usado = contarRecursoDia(diaList, 'cx_micro_laringe');
+    if(usado === 0){
+      alertas.push({tipo:'aviso', msg:'⚠️ Cx Micro Laringe: apenas 1/dia (tempo de esterilização)'});
+    }
+  }
+
+  // 6. Vídeo por sala — informar que sala já tem vídeo reservado
+  if(recursosAtivos.video && sala){
+    let salaJaTemVideo = diaList.some(c => c.sala === sala && c.recursos && c.recursos.video);
+    if(salaJaTemVideo){
+      alertas.push({tipo:'info', msg:'📹 <b>'+sala+'</b> já tem vídeo reservado — mesma equipe/sala não consome equipamento adicional'});
+    }
+  }
+
+  // Render
+  let temErro = alertas.some(a => a.tipo==='erro');
+
+  if(alertas.length === 0){
+    container.innerHTML = '<div class="live-item" style="background:var(--accent-light);color:var(--accent)">✅ Tudo certo — sem conflitos</div>';
+    bar.className='validation-bar show all-ok';
+  } else {
+    let ordem = {erro:0, aviso:1, info:2};
+    alertas.sort((a,b) => (ordem[a.tipo]||9) - (ordem[b.tipo]||9));
+    let colors = {
+      erro: 'background:var(--danger-light);color:var(--danger)',
+      aviso: 'background:var(--warning-light);color:var(--warning)',
+      info: 'background:#e3f2fd;color:#1565c0'
+    };
+    container.innerHTML = alertas.map(a =>
+      '<div class="live-item" style="'+colors[a.tipo]+'">'+a.msg+'</div>'
+    ).join('');
+    bar.className = 'validation-bar show ' + (temErro ? 'has-error' : 'has-warning');
+  }
+
+  // Block/unblock confirm button
+  if(temErro){
+    btn.classList.add('disabled');
+  } else {
+    btn.classList.remove('disabled');
+  }
+}
+
+// ============ SIMULAR (modal completo) ============
+function simular(){
+  let c = coletarForm();
+  let alertas = [];
+
+  // --- Campos obrigatórios ---
+  if(!c.data) alertas.push({tipo:'erro', msg:'Data não informada'});
+  if(!c.horario) alertas.push({tipo:'erro', msg:'Horário não informado'});
+  if(!c.sala) alertas.push({tipo:'erro', msg:'Sala não selecionada'});
+  if(!c.paciente) alertas.push({tipo:'erro', msg:'Paciente não informado'});
+  if(!c.medico) alertas.push({tipo:'erro', msg:'Cirurgião não informado'});
+  if(!c.procedimento) alertas.push({tipo:'erro', msg:'Procedimento não informado'});
+
+  if(alertas.filter(a=>a.tipo==='erro').length > 0){
+    mostrarAlertas(alertas);
+    return;
+  }
+
+  let diaList = cirurgiasDoDia(c.data, -1);
+  let ini = toMin(c.horario);
+  let fim = ini + (c.tempo||60);
+  let periodo = getPeriodo(ini);
+
+  // --- 1. Conflito de horário na mesma sala ---
+  let mesmaSala = diaList.filter(x => x.sala === c.sala);
+  mesmaSala.forEach(x => {
+    let xi = toMin(x.horario);
+    let xf = xi + (x.tempo||60);
+    if(ini < xf && fim > xi){
+      alertas.push({tipo:'erro', msg:'⏰ Sobreposição de horário com ' + x.paciente + ' (' + x.horario + '-' + minToH(xf) + ') na ' + c.sala});
+    }
+  });
+
+  // --- 2. Intervalo de 1h entre cirurgias na mesma sala ---
+  mesmaSala.forEach(x => {
+    let xi = toMin(x.horario);
+    let xf = xi + (x.tempo||60);
+    // Checar se tem pelo menos 60min de intervalo
+    let gap1 = ini - xf; // gap entre fim da existente e início da nova
+    let gap2 = xi - fim;  // gap entre fim da nova e início da existente
+    if(gap1 >= 0 && gap1 < REGRAS.intervalo_min){
+      alertas.push({tipo:'aviso', msg:'⏱️ Intervalo de apenas '+gap1+'min após '+x.paciente+' ('+x.horario+'). Mínimo recomendado: '+REGRAS.intervalo_min+'min'});
+    }
+    if(gap2 >= 0 && gap2 < REGRAS.intervalo_min){
+      alertas.push({tipo:'aviso', msg:'⏱️ Intervalo de apenas '+gap2+'min antes de '+x.paciente+' ('+x.horario+'). Mínimo recomendado: '+REGRAS.intervalo_min+'min'});
+    }
+  });
+
+  // --- 3. Sugerir sala livre se houver conflito ---
+  let temConflito = alertas.some(a => a.msg.includes('Sobreposição'));
+  if(temConflito){
+    let livres = encontrarSalasLivres(c.data, ini, c.tempo||60, c.sala);
+    if(livres.length > 0){
+      alertas.push({tipo:'info', msg:'💡 Salas disponíveis nesse horário: ' + livres.join(', ')});
+    } else {
+      alertas.push({tipo:'erro', msg:'❌ Nenhuma sala disponível nesse horário'});
+    }
+  }
+
+  // --- 4. Limites DIÁRIOS de equipamentos ---
+  let recursosUsados = Object.keys(c.recursos).filter(k => c.recursos[k]);
+  recursosUsados.forEach(r => {
+    if(REGRAS.diario[r]){
+      let usado = contarRecursoDia(diaList, r);
+      let max = getLimite(r, c.data);
+      let regra = REGRAS.diario[r];
+      if(usado >= max){
+        alertas.push({tipo:'erro', msg:'🚫 '+regra.label+': limite atingido ('+usado+'/'+max+')'});
+      } else if(usado >= max - 1){
+        alertas.push({tipo:'aviso', msg:'⚠️ '+regra.label+': última vaga ('+usado+'/'+max+')'});
+      } else {
+        alertas.push({tipo:'ok', msg:'✅ '+regra.label+': '+(usado+1)+'/'+max});
+      }
+    }
+  });
+
+  // --- 5. Limites SIMULTÂNEOS por período (escopia) ---
+  recursosUsados.forEach(r => {
+    if(REGRAS.simultaneo_periodo[r]){
+      let regra = REGRAS.simultaneo_periodo[r];
+      let usadoPeriodo = contarSimultaneosPeriodo(diaList, r, periodo);
+      let periodoLabel = periodo==='manha'?'Manhã':'Tarde';
+      if(usadoPeriodo >= regra.max){
+        alertas.push({tipo:'erro', msg:'🚫 '+regra.label+' — '+periodoLabel+': limite atingido ('+usadoPeriodo+'/'+regra.max+')'});
+        // Checar se tem vaga no outro período
+        let outroPeriodo = periodo==='manha'?'tarde':'manha';
+        let usadoOutro = contarSimultaneosPeriodo(diaList, r, outroPeriodo);
+        if(usadoOutro < regra.max){
+          alertas.push({tipo:'info', msg:'💡 Período '+(outroPeriodo==='manha'?'Manhã':'Tarde')+' tem vaga para '+r+' ('+usadoOutro+'/'+regra.max+')'});
+        }
+      } else {
+        alertas.push({tipo:'ok', msg:'✅ '+regra.label+' — '+periodoLabel+': '+(usadoPeriodo+1)+'/'+regra.max});
+      }
+    }
+  });
+
+  // --- 6. Cx Micro Laringe: alerta especial (só 1/dia por esterilização) ---
+  if(c.recursos.cx_micro_laringe){
+    alertas.push({tipo:'aviso', msg:'⚠️ Cx Micro Laringe/Endonasal: apenas 1 cirurgia/dia (tempo de esterilização)'});
+  }
+
+  // --- Resumo ---
+  if(alertas.filter(a=>a.tipo==='erro').length === 0 && alertas.filter(a=>a.tipo==='aviso').length === 0){
+    alertas.push({tipo:'ok', msg:'✅ Nenhum conflito encontrado. Pode confirmar!'});
+  }
+
+  mostrarAlertas(alertas);
+}
+
+function mostrarAlertas(alertas){
+  // Sort: erros primeiro, depois avisos, info, ok
+  let ordem = {erro:0, aviso:1, info:2, ok:3};
+  alertas.sort((a,b) => (ordem[a.tipo]||9) - (ordem[b.tipo]||9));
+
+  let container = document.getElementById("simAlertas");
+  container.innerHTML = alertas.map(a => {
+    let cls = 'alerta-' + (a.tipo==='info'?'aviso':a.tipo);
+    if(a.tipo==='info') cls = 'alerta-info';
+    return '<div class="modal-alerta '+cls+'">' + a.msg + '</div>';
+  }).join('');
+
+  document.getElementById("modalSim").classList.add("show");
+}
+
+function fecharModal(){ document.getElementById("modalSim").classList.remove("show"); }
+
+// ============ SALVAR ============
+async function salvar(){
+  let c = coletarForm();
+  if(!c.data||!c.horario||!c.sala||!c.paciente||!c.medico||!c.procedimento){
+    alert("Preencha os campos obrigatórios: Data, Horário, Sala, Paciente, Cirurgião e Procedimento.");
+    return;
+  }
+  let btn = document.getElementById("btnConfirmar");
+  if(btn.classList.contains('disabled')){
+    alert("Existem conflitos que impedem o agendamento.");
+    return;
+  }
+  btn.disabled = true; btn.innerText = 'Salvando...';
+  let saved = await DB.salvarCirurgia(c);
+  if(saved){
+    await DB.loadCirurgias();
+    if(c.crm && c.medico){
+      let exists = MEDICOS_CACHE.find(m=>m.crm===c.crm);
+      if(!exists){
+        await DB.upsertMedico({crm:c.crm, nome:c.medico, uf:'SP', especialidade:c.especialidade||'', origem:'auto'});
+        await DB.loadMedicos();
+      }
+    }
+    limparForm();
+    showToast('✓ Cirurgia agendada com sucesso!');
+    atualizarHeader();
+    renderRecursosGrid();
+  }
+  btn.disabled = false; btn.innerText = '✓ Confirmar Agendamento';
+}
+
+// ============ CANCELAR / SUSPENDER (COM MOTIVO) ============
+const MOTIVOS_CANCELAMENTO = [
+  'Paciente desistiu',
+  'Condição clínica desfavorável',
+  'Exames pendentes',
+  'Falta de material/OPME',
+  'Sem vaga de UTI',
+  'Convênio não autorizado',
+  'Médico indisponível',
+  'Falta de jejum',
+  'Outro'
+];
+const MOTIVOS_SUSPENSAO = [
+  'Atraso na cirurgia anterior',
+  'Intercorrência em sala',
+  'Equipamento indisponível',
+  'Paciente não localizado',
+  'Falta de hemoderivados',
+  'Alteração de quadro clínico',
+  'Sem leito disponível',
+  'Outro'
+];
+
+async function cancelar(i){
+  let motivo = promptMotivo('Cancelar cirurgia de '+dados[i].paciente, MOTIVOS_CANCELAMENTO);
+  if(motivo !== null){
+    await DB.updateCirurgia(dados[i].id, {cancelado:true, motivo_cancelamento:motivo});
+    await DB.loadCirurgias();
+    showToast('Cirurgia cancelada: '+dados[i].paciente);
+    desenhar(); renderLista();
+  }
+}
+async function suspender(i){
+  let motivo = promptMotivo('Suspender cirurgia de '+dados[i].paciente, MOTIVOS_SUSPENSAO);
+  if(motivo !== null){
+    await DB.updateCirurgia(dados[i].id, {suspenso:true, motivo_suspensao:motivo});
+    await DB.loadCirurgias();
+    showToast('Cirurgia suspensa: '+dados[i].paciente);
+    desenhar(); renderLista();
+  }
+}
+
+function promptMotivo(titulo, opcoes){
+  let lista = opcoes.map((m,i)=>(i+1)+'. '+m).join('\n');
+  let resp = prompt(titulo+'\n\nSelecione o motivo (número):\n'+lista+'\n\nOu digite o motivo:');
+  if(resp === null) return null;
+  let num = parseInt(resp);
+  if(num >= 1 && num <= opcoes.length){
+    let motivo = opcoes[num-1];
+    if(motivo === 'Outro'){
+      let custom = prompt('Descreva o motivo:');
+      return custom || 'Outro (não especificado)';
+    }
+    return motivo;
+  }
+  return resp || 'Não informado';
+}
+
+async function reativar(i){
+  if(confirm("Reativar cirurgia de "+dados[i].paciente+"?")){
+    let alterarData = confirm("Deseja alterar a data da cirurgia?");
+    if(alterarData){
+      let novaData = prompt("Nova data (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
+      let novoHorario = prompt("Novo horário (HH:MM):", dados[i].horario);
+    }
+    let updates = {cancelado:false, suspenso:false, motivo_cancelamento:null, motivo_suspensao:null};
+    if(novaData && /^\d{4}-\d{2}-\d{2}$/.test(novaData)) updates.data = novaData;
+    if(novoHorario && /^\d{2}:\d{2}$/.test(novoHorario)) updates.horario = novoHorario;
+    await DB.updateCirurgia(dados[i].id, updates);
+    await DB.loadCirurgias();
+    showToast('✓ Cirurgia reativada: '+dados[i].paciente);
+    desenhar(); renderLista();
+  }
+}
+
+async function editarCirurgia(i){
+  let c = dados[i];
+  let novaData = prompt("Data (AAAA-MM-DD):", c.data);
+  if(novaData === null) return;
+  let novoHorario = prompt("Horário (HH:MM):", c.horario);
+  let novaSala = prompt("Sala (ex: Sala 1):", c.sala);
+  let novoPaciente = prompt("Paciente:", c.paciente);
+  let novoMedico = prompt("Cirurgião:", c.medico);
+  let novoProcedimento = prompt("Procedimento:", c.procedimento);
+
+  let edits = {};
+  if(novaData) edits.data = novaData;
+  if(novoHorario) edits.horario = novoHorario;
+  if(novaSala) edits.sala = novaSala;
+  if(novoPaciente) edits.paciente = novoPaciente;
+  if(novoMedico) edits.medico = novoMedico;
+  if(novoProcedimento) edits.procedimento = novoProcedimento;
+  await DB.updateCirurgia(dados[i].id, edits);
+  await DB.loadCirurgias();
+  showToast('✓ Cirurgia editada');
+  desenhar(); renderLista();
+}
+
+async function excluir(i){
+  if(confirm("Excluir permanentemente a cirurgia de "+dados[i].paciente+"?")){
+    await DB.deleteCirurgia(dados[i].id);
+    await DB.loadCirurgias();
+    desenhar(); renderLista();
+  }
+}
+
+// ============ DRAG AND DROP ============
+let draggedIdx = null;
+
+function showToast(msg){
+  let t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function onDragStart(e, idx){
+  draggedIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', idx);
+  setTimeout(()=>{
+    e.target.classList.add('dragging');
+  }, 0);
+}
+
+function onDragEnd(e){
+  e.target.classList.remove('dragging');
+  draggedIdx = null;
+  document.querySelectorAll('.sala-col-body').forEach(b=>{
+    b.classList.remove('drag-over','drag-over-invalid');
+  });
+}
+
+function onDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  let body = e.currentTarget;
+  if(!body.classList.contains('drag-over')){
+    body.classList.add('drag-over');
+  }
+}
+
+function onDragEnter(e){
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e){
+  // Only remove if leaving the body element itself
+  let rect = e.currentTarget.getBoundingClientRect();
+  let x = e.clientX, y = e.clientY;
+  if(x < rect.left || x > rect.right || y < rect.top || y > rect.bottom){
+    e.currentTarget.classList.remove('drag-over','drag-over-invalid');
+  }
+}
+
+async function onDrop(e, salaDestino){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over','drag-over-invalid');
+
+  if(draggedIdx === null) return;
+
+  let cirug = dados[draggedIdx];
+  let salaOrigem = cirug.sala;
+
+  if(salaOrigem === salaDestino){
+    draggedIdx = null;
+    return;
+  }
+
+  let conflito = false;
+  if(cirug.horario && cirug.tempo){
+    let ini = toMin(cirug.horario);
+    let fim = ini + cirug.tempo;
+    dados.filter(x=>!x.cancelado && !x.suspenso && x.data===cirug.data && x.sala===salaDestino).forEach(x=>{
+      let xi = toMin(x.horario);
+      let xf = xi + (x.tempo||60);
+      if(ini < xf && fim > xi) conflito = true;
+    });
+  }
+
+  if(conflito){
+    if(!confirm('⚠️ Conflito de horário na '+salaDestino+'!\n\nDeseja mover mesmo assim?')){
+      draggedIdx = null;
+      return;
+    }
+  }
+
+  await DB.updateCirurgia(cirug.id, {sala: salaDestino});
+  await DB.loadCirurgias();
+  showToast('✓ ' + cirug.paciente + ' movido de ' + salaOrigem + ' → ' + salaDestino);
+  draggedIdx = null;
+  desenhar();
+}
+
+// ============ MAPA (GRADE) ============
+function desenhar(){
+  let grade = document.getElementById("grade");
+  grade.innerHTML = "";
+
+  let fData = document.getElementById("filtroData").value;
+  let fGrupo = document.getElementById("filtroGrupo").value;
+  let fEspec = document.getElementById("filtroEspec").value.toLowerCase();
+  let fMedico = document.getElementById("filtroMedico").value.toLowerCase();
+
+  let lista = dados.filter(c=>!c.cancelado && !c.suspenso);
+  if(fData) lista = lista.filter(c=>c.data===fData);
+  if(fGrupo!=='todos') lista = lista.filter(c=>grupoConvenio(c)===fGrupo);
+  if(fEspec) lista = lista.filter(c=>(c.especialidade||'').toLowerCase().includes(fEspec));
+  if(fMedico) lista = lista.filter(c=>(c.medico||'').toLowerCase().includes(fMedico));
+
+  // Contadores
+  let cDiv = document.getElementById("counters");
+  let total = lista.length;
+  let grupo = lista.filter(c=>grupoConvenio(c)==='grupo').length;
+  let comUti = lista.filter(c=>c.recursos && c.recursos.uti).length;
+  let comVideo = lista.filter(c=>c.recursos && c.recursos.video).length;
+  let comEscopia = lista.filter(c=>c.recursos && c.recursos.escopia).length;
+  let comMicro = lista.filter(c=>c.recursos && c.recursos.microscopio).length;
+  let comUltra = lista.filter(c=>c.recursos && c.recursos.ultracision).length;
+
+  function counterColor(usado, max){ return usado >= max ? 'color:var(--danger)' : usado >= max-1 ? 'color:var(--warning)' : ''; }
+
+  cDiv.innerHTML = [
+    {n:total, l:'Total Cirurgias', s:''},
+    {n:grupo, l:'Grupo Amil/ACS', s:''},
+    {n:total-grupo, l:'Extra Grupo', s:''},
+    {n:comVideo+'/5', l:'Vídeo', s:counterColor(comVideo,5)},
+    {n:comEscopia+'/6', l:'Escopia (dia)', s:counterColor(comEscopia,6)},
+    {n:comMicro+'/2', l:'Microscópio', s:counterColor(comMicro,2)},
+    {n:comUltra+'/2', l:'Ultracision', s:counterColor(comUltra,2)},
+    {n:comUti+'/3', l:'Reserva UTI', s:counterColor(comUti,3)},
+  ].map(c=>'<div class="counter-box"><div class="num" style="'+c.s+'">'+c.n+'</div><div class="lbl">'+c.l+'</div></div>').join('');
+
+  // Salas
+  for(let s=1;s<=9;s++){
+    let salaName = "Sala "+s;
+    let col = document.createElement("div");
+    col.className = "sala-col";
+
+    let header = document.createElement("div");
+    header.className = "sala-col-header" + (!salas[s]?" fechada":"");
+    let salaCirurgias = lista.filter(c=>c.sala===salaName);
+    header.innerHTML = salaName + '<span style="font-size:11px;opacity:0.8">'+salaCirurgias.length+' cirurgia(s)</span>';
+    col.appendChild(header);
+
+    let body = document.createElement("div");
+    body.className = "sala-col-body";
+
+    if(!salas[s]){
+      body.innerHTML = '<p style="color:#999;font-size:12px;text-align:center;margin-top:20px">Fechada</p>';
+    } else {
+      // Make body a drop zone
+      body.addEventListener('dragover', onDragOver);
+      body.addEventListener('dragenter', onDragEnter);
+      body.addEventListener('dragleave', onDragLeave);
+      body.addEventListener('drop', function(e){ onDrop(e, salaName); });
+
+      salaCirurgias.sort((a,b)=>a.horario.localeCompare(b.horario));
+      salaCirurgias.forEach(c=>{
+        let idx = dados.indexOf(c);
+        let isGrupo = grupoConvenio(c)==='grupo';
+        let recursos = c.recursos ? Object.keys(c.recursos).filter(k=>c.recursos[k]) : [];
+
+        let card = document.createElement("div");
+        card.className = "cirurgia-card" + (isGrupo?" grupo":"");
+        card.setAttribute("draggable","true");
+        card.addEventListener('dragstart', function(e){ onDragStart(e, idx); });
+        card.addEventListener('dragend', onDragEnd);
+
+        card.innerHTML =
+          '<span class="drag-handle" title="Arraste para mover de sala">⠿</span>'+
+          '<div class="hora">'+c.horario + (c.tempo?' <span style="font-size:10px;opacity:0.7">('+c.tempo+'min)</span>':'') + '</div>'+
+          '<div class="paciente-nome">'+c.paciente+(c.identificacao?' <span class="detalhe">#'+c.identificacao+'</span>':'')+'</div>'+
+          '<div class="detalhe">Dr(a). '+c.medico+(c.crm?' | CRM: '+c.crm:'')+'</div>'+
+          '<div class="detalhe">'+c.procedimento+(c.codigoTuss?' | TUSS: '+c.codigoTuss:'')+'</div>'+
+          '<div class="tags">'+
+            (isGrupo?'<span class="tag tag-convenio">GRUPO</span>':'<span class="tag tag-extra">EXTRA</span>')+
+            (c.convenio?'<span class="tag tag-convenio">'+c.convenio+'</span>':'')+
+            recursos.map(r=>'<span class="tag tag-recurso">'+r.toUpperCase()+'</span>').join('')+
+          '</div>'+
+          '<div class="actions">'+
+            '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelar('+idx+')">Cancelar</button>'+
+            '<button class="btn btn-warning btn-sm" onclick="event.stopPropagation();suspender('+idx+')">Suspender</button>'+
+          '</div>';
+        body.appendChild(card);
+      });
+      if(salaCirurgias.length===0){
+        body.innerHTML='<p style="color:#b0bac8;font-size:12px;text-align:center;margin-top:30px">Arraste cirurgias aqui</p>';
+      }
+    }
+    col.appendChild(body);
+    grade.appendChild(col);
+  }
+}
+
+// ============ LISTA ============
+function renderLista(){
+  let fData = document.getElementById("filtroListaData").value;
+  let fStatus = document.getElementById("filtroListaStatus").value;
+
+  let lista = [...dados];
+  if(fData) lista = lista.filter(c=>c.data===fData);
+  if(fStatus==='agendado') lista = lista.filter(c=>!c.cancelado&&!c.suspenso);
+  if(fStatus==='cancelado') lista = lista.filter(c=>c.cancelado);
+  if(fStatus==='suspenso') lista = lista.filter(c=>c.suspenso);
+
+  lista.sort((a,b)=>(a.data+a.horario).localeCompare(b.data+b.horario));
+
+  let tbody = document.getElementById("tabelaBody");
+  tbody.innerHTML = lista.map(c=>{
+    let idx = dados.indexOf(c);
+    let status = c.cancelado?'cancelado':c.suspenso?'suspenso':'agendado';
+    let statusLabel = status==='agendado'?'Agendado':status==='cancelado'?'Cancelado':'Suspenso';
+    let motivo = c.motivoCancelamento || c.motivoSuspensao || '';
+    return '<tr class="'+status+'">'+
+      '<td>'+formatDate(c.data)+'</td>'+
+      '<td>'+c.horario+'</td>'+
+      '<td>'+c.sala+'</td>'+
+      '<td>'+(c.identificacao||'-')+'</td>'+
+      '<td>'+c.paciente+'</td>'+
+      '<td>'+(c.idade||'-')+'</td>'+
+      '<td>'+c.medico+'</td>'+
+      '<td>'+(c.crm||'-')+'</td>'+
+      '<td>'+c.procedimento+'</td>'+
+      '<td>'+(c.codigoTuss||'-')+'</td>'+
+      '<td>'+(c.convenio||'-')+'</td>'+
+      '<td>'+(c.convenioGrupo||'-')+'</td>'+
+      '<td>'+(c.tempo||'-')+'min</td>'+
+      '<td><span class="status-badge status-'+status+'">'+statusLabel+'</span>'+
+        (motivo?'<br><span style="font-size:10px;color:var(--text-secondary)">'+motivo+'</span>':'')+
+      '</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-primary btn-sm" onclick="editarCirurgia('+idx+')" title="Editar">✏️</button> '+
+        (status!=='agendado'?'<button class="btn btn-success btn-sm" onclick="reativar('+idx+')">Reativar</button> ':'')+
+        (status==='agendado'?'<button class="btn btn-warning btn-sm" onclick="suspender('+idx+')" style="font-size:10px">Susp.</button> ':'')+
+        (status==='agendado'?'<button class="btn btn-danger btn-sm" onclick="cancelar('+idx+')" style="font-size:10px">Canc.</button> ':'')+
+        '<button class="btn btn-danger btn-sm" onclick="excluir('+idx+')" style="font-size:10px" title="Excluir">🗑</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function formatDate(d){
+  if(!d) return '-';
+  let p=d.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+// ============ PDF MAPA ============
+function gerarPDF(){
+  const {jsPDF} = window.jspdf;
+  let doc = new jsPDF('landscape','mm','a4');
+
+  let fData = document.getElementById("filtroData").value;
+  let lista = dados.filter(c=>!c.cancelado&&!c.suspenso);
+  if(fData) lista = lista.filter(c=>c.data===fData);
+
+  doc.setFontSize(16);
+  doc.setFont(undefined,'bold');
+  doc.text("Mapa Cirúrgico - Hospital Ana Costa", 14, 15);
+  doc.setFontSize(10);
+  doc.setFont(undefined,'normal');
+  doc.text("Data: " + (fData?formatDate(fData):'Todas'), 14, 22);
+  doc.text("Gerado em: " + new Date().toLocaleString('pt-BR'), 14, 27);
+
+  let y = 35;
+  for(let s=1;s<=9;s++){
+    if(!salas[s]) continue;
+    let salaCir = lista.filter(c=>c.sala==="Sala "+s).sort((a,b)=>a.horario.localeCompare(b.horario));
+    if(salaCir.length===0) continue;
+
+    if(y > 170){ doc.addPage(); y=15; }
+
+    doc.setFontSize(12);
+    doc.setFont(undefined,'bold');
+    doc.text("Sala "+s, 14, y);
+    y+=5;
+
+    doc.setFontSize(8);
+    doc.setFont(undefined,'bold');
+    let cols = [14,30,55,110,160,200,240];
+    ['Hora','Pront.','Paciente','Procedimento','Cirurgião','CRM','Convênio'].forEach((h,i)=>{
+      doc.text(h, cols[i], y);
+    });
+    y+=1;
+    doc.line(14, y, 283, y);
+    y+=4;
+
+    doc.setFont(undefined,'normal');
+    salaCir.forEach(c=>{
+      if(y>185){ doc.addPage(); y=15; }
+      doc.text(c.horario||'', cols[0], y);
+      doc.text(c.identificacao||'', cols[1], y);
+      doc.text((c.paciente||'').substring(0,30), cols[2], y);
+      doc.text((c.procedimento||'').substring(0,30), cols[3], y);
+      doc.text((c.medico||'').substring(0,20), cols[4], y);
+      doc.text(c.crm||'', cols[5], y);
+      doc.text((c.convenio||'').substring(0,20), cols[6], y);
+      y+=5;
+    });
+    y+=6;
+  }
+
+  doc.save("mapa_cirurgico_"+(fData||'geral')+".pdf");
+}
+
+// ============ PDF OCORRÊNCIAS ============
+function pdfOcorrencias(){
+  const {jsPDF} = window.jspdf;
+  let doc = new jsPDF('portrait','mm','a4');
+
+  let canc = dados.filter(c=>c.cancelado);
+  let susp = dados.filter(c=>c.suspenso);
+
+  doc.setFontSize(16);
+  doc.setFont(undefined,'bold');
+  doc.text("Ocorrências - Centro Cirúrgico HAC", 14, 15);
+  doc.setFontSize(10);
+  doc.setFont(undefined,'normal');
+  doc.text("Gerado em: "+new Date().toLocaleString('pt-BR'), 14, 22);
+
+  let y=32;
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text("Cancelamentos ("+canc.length+")", 14, y); y+=6;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined,'normal');
+  canc.forEach(c=>{
+    if(y>270){doc.addPage();y=15;}
+    doc.text(formatDate(c.data)+" | "+c.horario+" | "+c.sala+" | "+c.paciente+" | "+c.procedimento, 14, y);
+    y+=5;
+  });
+
+  y+=8;
+  doc.setFontSize(13);
+  doc.setFont(undefined,'bold');
+  doc.text("Suspensões ("+susp.length+")", 14, y); y+=6;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined,'normal');
+  susp.forEach(c=>{
+    if(y>270){doc.addPage();y=15;}
+    doc.text(formatDate(c.data)+" | "+c.horario+" | "+c.sala+" | "+c.paciente+" | "+c.procedimento, 14, y);
+    y+=5;
+  });
+
+  doc.save("ocorrencias_cc.pdf");
+}
+
+// ============ HEADER ============
+function atualizarHeader(){
+  let hoje = new Date().toISOString().split('T')[0];
+  let hojeCir = dados.filter(c=>c.data===hoje&&!c.cancelado&&!c.suspenso).length;
+  document.getElementById("headerData").innerText = formatDate(hoje);
+  document.getElementById("headerTotal").innerText = hojeCir + " cirurgia(s) hoje";
+}
+
+// ============ MÉDICOS (SUPABASE) ============
+let indiceCRM = {};
+
+function construirIndice(){
+  indiceCRM = {};
+  MEDICOS_CACHE.forEach(m => { indiceCRM[m.crm] = m; });
+}
+
+function buscarCRM(){
+  let crm = document.getElementById("crm").value.trim();
+  let statusEl = document.getElementById("crmStatus");
+  if(!crm){ statusEl.innerHTML = ''; return; }
+
+  let found = indiceCRM[crm];
+  if(found){
+    document.getElementById("medico").value = found.nome;
+    document.getElementById("especialidade").value = found.especialidade || '';
+    statusEl.innerHTML = '<span style="color:var(--primary)">✓ ' + found.nome + '</span>';
+  } else {
+    statusEl.innerHTML = '<span style="color:var(--warning)">⚠ CRM não encontrado. Preencha manualmente — será salvo ao confirmar.</span>';
+  }
+}
+
+let editandoCRM = null;
+
+function editarMedico(crm){ editandoCRM = crm; renderMedicos(); setTimeout(()=>{ let el=document.getElementById('edit-nome-'+crm); if(el)el.focus(); },50); }
+function cancelarEdicao(){ editandoCRM = null; renderMedicos(); }
+
+async function salvarEdicao(crm){
+  let nome = document.getElementById('edit-nome-'+crm).value.trim();
+  let espec = document.getElementById('edit-espec-'+crm).value.trim();
+  if(!nome){ alert('Nome obrigatório'); return; }
+  await DB.upsertMedico({crm, nome, uf:'SP', especialidade:espec, origem:'editado'});
+  await DB.loadMedicos();
+  construirIndice();
+  editandoCRM = null;
+  renderMedicos();
+  showToast('✓ Médico CRM '+crm+' atualizado');
+}
+
+async function cadastrarMedico(){
+  let crm = document.getElementById("cadMedCRM").value.trim();
+  let nome = document.getElementById("cadMedNome").value.trim();
+  let espec = document.getElementById("cadMedEspec").value.trim();
+  if(!crm || !nome){ alert("CRM e Nome são obrigatórios."); return; }
+  await DB.upsertMedico({crm, nome, uf:'SP', especialidade:espec, origem:'manual'});
+  await DB.loadMedicos();
+  construirIndice();
+  document.getElementById("cadMedCRM").value='';
+  document.getElementById("cadMedNome").value='';
+  document.getElementById("cadMedEspec").value='';
+  renderMedicos();
+  showToast('✓ Médico CRM '+crm+' salvo');
+}
+
+async function excluirMedicoNovo(crm){
+  if(confirm("Excluir médico CRM "+crm+"?")){
+    await DB.deleteMedico(crm);
+    await DB.loadMedicos();
+    construirIndice();
+    renderMedicos();
+  }
+}
+
+function renderMedicos(){
+  let busca = (document.getElementById("buscaMedico")?.value||'').toLowerCase();
+  let todos = MEDICOS_CACHE;
+
+  let lista;
+  if(busca){
+    lista = todos.filter(m => m.crm.toLowerCase().includes(busca) || m.nome.toLowerCase().includes(busca) || (m.especialidade||'').toLowerCase().includes(busca)).slice(0,100);
+  } else {
+    let manuais = todos.filter(m=>m.origem!=='excel').slice(0,20);
+    let base = todos.filter(m=>m.origem==='excel').slice(0,80);
+    lista = [...manuais, ...base];
+  }
+
+  document.getElementById("totalMedicos").innerText = todos.length;
+  let manuaisCount = todos.filter(m=>m.origem!=='excel').length;
+  document.getElementById("totalNovos").innerText = manuaisCount + ' adicionados/editados';
+
+  let tbody = document.getElementById("tabelaMedicos");
+  tbody.innerHTML = lista.map(m=>{
+    let isManual = m.origem !== 'excel';
+    let tag = m.origem==='editado'?'<span class="tag" style="background:#e3f2fd;color:#1565c0">EDITADO</span>':
+              m.origem==='manual'||m.origem==='auto'?'<span class="tag tag-recurso">NOVO</span>':
+              '<span class="tag tag-convenio">BASE</span>';
+    let cirCount = dados.filter(c=>!c.cancelado&&!c.suspenso&&c.crm===m.crm).length;
+
+    if(editandoCRM === m.crm){
+      return '<tr style="background:#fffde7">'+
+        '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+m.crm+'</td>'+
+        '<td><input id="edit-nome-'+m.crm+'" value="'+escapeHtml(m.nome)+'" style="padding:4px 6px;border:1.5px solid var(--primary);border-radius:4px;font-size:12px;width:100%" onkeydown="if(event.key==&quot;Enter&quot;)salvarEdicao(&quot;'+m.crm+'&quot;);if(event.key==&quot;Escape&quot;)cancelarEdicao()"></td>'+
+        '<td>'+(m.uf||'SP')+'</td>'+
+        '<td><input id="edit-espec-'+m.crm+'" value="'+escapeHtml(m.especialidade||'')+'" placeholder="Especialidade" style="padding:4px 6px;border:1.5px solid var(--primary);border-radius:4px;font-size:12px;width:100%" onkeydown="if(event.key==&quot;Enter&quot;)salvarEdicao(&quot;'+m.crm+'&quot;);if(event.key==&quot;Escape&quot;)cancelarEdicao()"></td>'+
+        '<td>'+tag+'</td>'+
+        '<td><span class="status-badge status-agendado">'+cirCount+'</span></td>'+
+        '<td><button class="btn btn-success btn-sm" onclick="salvarEdicao(\''+m.crm+'\')">Salvar</button> <button class="btn btn-outline btn-sm" onclick="cancelarEdicao()" style="padding:4px 8px;font-size:11px">✕</button></td></tr>';
+    }
+
+    return '<tr>'+
+      '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+m.crm+'</td>'+
+      '<td>'+m.nome+'</td>'+
+      '<td>'+(m.uf||'SP')+'</td>'+
+      '<td style="'+((!m.especialidade)?'color:#ccc;font-style:italic':'')+'">'+( m.especialidade||'sem especialidade')+'</td>'+
+      '<td>'+tag+'</td>'+
+      '<td><span class="status-badge status-agendado">'+cirCount+'</span></td>'+
+      '<td><button class="btn btn-primary btn-sm" onclick="editarMedico(\''+m.crm+'\')">✏️</button> '+
+        (isManual?'<button class="btn btn-danger btn-sm" onclick="excluirMedicoNovo(\''+m.crm+'\')">Excluir</button>':'')+
+      '</td></tr>';
+  }).join('');
+
+  if(!busca && todos.length > lista.length){
+    tbody.innerHTML += '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:12px">Mostrando '+lista.length+' de '+todos.length+'. Use a busca.</td></tr>';
+  }
+}
+
+function exportarMedicosExcel(){
+  let wsData = [['CRM','NOME','UF','ESPECIALIDADE','ORIGEM']];
+  MEDICOS_CACHE.forEach(m=>wsData.push([m.crm,m.nome,m.uf||'SP',m.especialidade||'',m.origem]));
+  let wb = XLSX.utils.book_new();
+  let ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:12},{wch:40},{wch:5},{wch:20},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Medicos');
+  XLSX.writeFile(wb, 'CRM_meds_atualizado.xlsx');
+  showToast('✓ Excel exportado');
+}
+
+function escapeHtml(str){ return (str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ============ CONVÊNIOS (SUPABASE) ============
+let editandoConv = null;
+function editarConvenio(sigla){ editandoConv = sigla; renderConvenios(); }
+function cancelarEdicaoConv(){ editandoConv = null; renderConvenios(); }
+
+async function salvarEdicaoConv(sigla){
+  let nome = document.getElementById('edit-conv-nome-'+sigla).value.trim();
+  let grupo = document.getElementById('edit-conv-grupo-'+sigla).value;
+  if(!nome){ alert('Nome obrigatório'); return; }
+  await DB.upsertConvenio({sigla, nome, grupo, origem:'editado'});
+  await DB.loadConvenios();
+  editandoConv = null; renderConvenios();
+  showToast('✓ Convênio '+sigla+' atualizado');
+}
+
+async function cadastrarConvenio(){
+  let sigla = document.getElementById("cadConvSigla").value.trim().toUpperCase();
+  let nome = document.getElementById("cadConvNome").value.trim();
+  let grupo = document.getElementById("cadConvGrupo").value;
+  if(!sigla || !nome){ alert("Sigla e Nome são obrigatórios."); return; }
+  await DB.upsertConvenio({sigla, nome, grupo, origem:'manual'});
+  await DB.loadConvenios();
+  document.getElementById("cadConvSigla").value='';
+  document.getElementById("cadConvNome").value='';
+  renderConvenios();
+  showToast('✓ Convênio '+sigla+' salvo');
+}
+
+async function excluirConvNovo(sigla){
+  if(confirm("Excluir convênio "+sigla+"?")){
+    await DB.deleteConvenio(sigla);
+    await DB.loadConvenios();
+    renderConvenios();
+  }
+}
+
+function renderConvenios(){
+  let busca = (document.getElementById("buscaConvenio")?.value||'').toLowerCase();
+  let todos = CONVENIO_CACHE;
+  let lista = busca ? todos.filter(c=> c.sigla.toLowerCase().includes(busca)||c.nome.toLowerCase().includes(busca)||c.grupo.toLowerCase().includes(busca)) : todos;
+
+  document.getElementById("totalConvenios").innerText = todos.length;
+  document.getElementById("totalConvNovos").innerText = todos.filter(c=>c.origem!=='excel').length;
+
+  let tbody = document.getElementById("tabelaConvenios");
+  tbody.innerHTML = lista.map(c=>{
+    let isManual = c.origem !== 'excel';
+    let tag = c.origem==='editado'?'<span class="tag" style="background:#e3f2fd;color:#1565c0">EDITADO</span>':isManual?'<span class="tag tag-recurso">NOVO</span>':'<span class="tag tag-convenio">BASE</span>';
+
+    if(editandoConv===c.sigla){
+      return '<tr style="background:#fffde7">'+
+        '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+c.sigla+'</td>'+
+        '<td><input id="edit-conv-nome-'+c.sigla+'" value="'+escapeHtml(c.nome)+'" style="padding:4px 6px;border:1.5px solid var(--primary);border-radius:4px;font-size:12px;width:100%" onkeydown="if(event.key==&quot;Enter&quot;)salvarEdicaoConv(&quot;'+c.sigla+'&quot;)"></td>'+
+        '<td><select id="edit-conv-grupo-'+c.sigla+'" style="padding:4px;border:1.5px solid var(--primary);border-radius:4px;font-size:12px"><option '+(c.grupo==='Mercado'?'selected':'')+'>Mercado</option><option '+(c.grupo==='Amil'?'selected':'')+'>Amil</option><option '+(c.grupo==='Ana Costa'?'selected':'')+'>Ana Costa</option></select></td>'+
+        '<td>'+tag+'</td>'+
+        '<td><button class="btn btn-success btn-sm" onclick="salvarEdicaoConv(\''+c.sigla+'\')">Salvar</button> <button class="btn btn-outline btn-sm" onclick="cancelarEdicaoConv()" style="padding:4px 8px;font-size:11px">✕</button></td></tr>';
+    }
+
+    return '<tr>'+
+      '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+c.sigla+'</td>'+
+      '<td>'+c.nome+'</td>'+
+      '<td><span class="tag '+(c.grupo==='Amil'||c.grupo==='Ana Costa'?'tag-convenio':'tag-extra')+'">'+c.grupo+'</span></td>'+
+      '<td>'+tag+'</td>'+
+      '<td><button class="btn btn-primary btn-sm" onclick="editarConvenio(\''+c.sigla+'\')">✏️</button> '+
+        (isManual?'<button class="btn btn-danger btn-sm" onclick="excluirConvNovo(\''+c.sigla+'\')">Excluir</button>':'')+
+      '</td></tr>';
+  }).join('');
+}
+
+function exportarConveniosExcel(){
+  let wsData = [['Sigla','ConvResumo','ConvGrupo','ORIGEM']];
+  CONVENIO_CACHE.forEach(c=>wsData.push([c.sigla,c.nome,c.grupo,c.origem]));
+  let wb = XLSX.utils.book_new();
+  let ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:8},{wch:35},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Convenios');
+  XLSX.writeFile(wb, 'Convenio_atualizado.xlsx');
+  showToast('✓ Excel exportado');
+}
+
+// ============ TUSS (SUPABASE) ============
+let editandoTuss = null;
+function editarTUSS(cod){ editandoTuss = cod; renderTUSSList(); }
+function cancelarEdicaoTuss(){ editandoTuss = null; renderTUSSList(); }
+
+async function salvarEdicaoTuss(cod){
+  let desc = document.getElementById('edit-tuss-desc-'+cod).value.trim();
+  if(!desc){ alert('Descrição obrigatória'); return; }
+  await DB.upsertTUSS({cod, desc, origem:'editado'});
+  await DB.loadTUSS();
+  editandoTuss = null; renderTUSSList();
+  showToast('✓ TUSS '+cod+' atualizado');
+}
+
+async function cadastrarTUSS(){
+  let cod = document.getElementById("cadTussCod").value.trim();
+  let desc = document.getElementById("cadTussDesc").value.trim();
+  if(!cod || !desc){ alert("Código e Descrição são obrigatórios."); return; }
+  await DB.upsertTUSS({cod, desc, origem:'manual'});
+  await DB.loadTUSS();
+  document.getElementById("cadTussCod").value='';
+  document.getElementById("cadTussDesc").value='';
+  renderTUSSList();
+  showToast('✓ TUSS '+cod+' salvo');
+}
+
+async function excluirTussNovo(cod){
+  if(confirm("Excluir TUSS "+cod+"?")){
+    await DB.deleteTUSS(cod);
+    await DB.loadTUSS();
+    renderTUSSList();
+  }
+}
+
+function renderTUSSList(){
+  let busca = (document.getElementById("buscaTuss")?.value||'').toLowerCase();
+  let todos = TUSS_CACHE;
+
+  let lista;
+  if(busca){
+    lista = todos.filter(t=> t.codigo.toLowerCase().includes(busca)||t.descricao.toLowerCase().includes(busca)).slice(0,100);
+  } else {
+    let manuais = todos.filter(t=>t.origem!=='excel').slice(0,20);
+    let base = todos.filter(t=>t.origem==='excel').slice(0,50);
+    lista = [...manuais, ...base];
+  }
+
+  document.getElementById("totalTuss").innerText = todos.length;
+  document.getElementById("totalTussNovos").innerText = todos.filter(t=>t.origem!=='excel').length;
+
+  let tbody = document.getElementById("tabelaTuss");
+  tbody.innerHTML = lista.map(t=>{
+    let isManual = t.origem !== 'excel';
+    let tag = t.origem==='editado'?'<span class="tag" style="background:#e3f2fd;color:#1565c0">EDITADO</span>':isManual?'<span class="tag tag-recurso">NOVO</span>':'<span class="tag tag-convenio">BASE</span>';
+
+    if(editandoTuss===t.codigo){
+      return '<tr style="background:#fffde7">'+
+        '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+t.codigo+'</td>'+
+        '<td><input id="edit-tuss-desc-'+t.codigo+'" value="'+escapeHtml(t.descricao)+'" style="padding:4px 6px;border:1.5px solid var(--primary);border-radius:4px;font-size:12px;width:100%" onkeydown="if(event.key==&quot;Enter&quot;)salvarEdicaoTuss(&quot;'+t.codigo+'&quot;)"></td>'+
+        '<td>'+tag+'</td>'+
+        '<td><button class="btn btn-success btn-sm" onclick="salvarEdicaoTuss(\''+t.codigo+'\')">Salvar</button> <button class="btn btn-outline btn-sm" onclick="cancelarEdicaoTuss()" style="padding:4px 8px;font-size:11px">✕</button></td></tr>';
+    }
+
+    return '<tr>'+
+      '<td style="font-family:JetBrains Mono,monospace;font-weight:600">'+t.codigo+'</td>'+
+      '<td>'+t.descricao+'</td>'+
+      '<td>'+tag+'</td>'+
+      '<td><button class="btn btn-primary btn-sm" onclick="editarTUSS(\''+t.codigo+'\')">✏️</button> '+
+        (isManual?'<button class="btn btn-danger btn-sm" onclick="excluirTussNovo(\''+t.codigo+'\')">Excluir</button>':'')+
+      '</td></tr>';
+  }).join('');
+
+  if(!busca && todos.length > lista.length){
+    tbody.innerHTML += '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:12px">Mostrando '+lista.length+' de '+todos.length+'. Use a busca.</td></tr>';
+  }
+}
+
+function exportarTUSSExcel(){
+  let wsData = [['TUSS COD','Descrição','ORIGEM']];
+  TUSS_CACHE.forEach(t=>wsData.push([t.codigo,t.descricao,t.origem]));
+  let wb = XLSX.utils.book_new();
+  let ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:12},{wch:80},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, 'TUSS');
+  XLSX.writeFile(wb, 'TUSS_atualizado.xlsx');
+  showToast('✓ Excel exportado');
+}
+
+// ============ CALCULAR IDADE ============
+function calcularIdade(){
+  let dn = document.getElementById("dataNasc").value;
+  if(!dn){ document.getElementById("idade").value=''; return; }
+  let nasc = new Date(dn);
+  let hoje = new Date();
+  let anos = hoje.getFullYear() - nasc.getFullYear();
+  let meses = hoje.getMonth() - nasc.getMonth();
+  if(meses < 0 || (meses===0 && hoje.getDate() < nasc.getDate())) anos--;
+  if(anos < 0) anos = 0;
+  if(anos < 1){
+    let m = (hoje.getFullYear()-nasc.getFullYear())*12 + hoje.getMonth()-nasc.getMonth();
+    if(hoje.getDate() < nasc.getDate()) m--;
+    document.getElementById("idade").value = m + ' meses';
+  } else {
+    document.getElementById("idade").value = anos + 'a';
+  }
+}
+
+// ============ BUSCAR TUSS ============
+let tussTimeout = null;
+function buscarTUSS(){ clearTimeout(tussTimeout); tussTimeout = setTimeout(_buscarTUSS, 200); }
+
+function _buscarTUSS(){
+  let q = document.getElementById("codigoTuss").value.trim();
+  let dd = document.getElementById("tussDropdown");
+  let st = document.getElementById("tussStatus");
+  if(!q || q.length < 2){ dd.style.display='none'; st.innerHTML=''; return; }
+
+  let ql = q.toLowerCase();
+  let results = TUSS_CACHE.filter(t => t.codigo.includes(q) || t.descricao.toLowerCase().includes(ql)).slice(0, 8);
+
+  if(results.length === 0){
+    dd.style.display='none';
+    st.innerHTML='<span style="color:var(--warning)">Nenhum TUSS encontrado. Preencha manualmente.</span>';
+    return;
+  }
+
+  dd.style.display='block';
+  dd.innerHTML = results.map(function(t){
+    var cod = t.codigo;
+    var desc = t.descricao.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    var descShort = t.descricao.substring(0,80);
+    return '<div style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #eee;display:flex;gap:8px" '+
+      'onmousedown="selecionarTUSS(&quot;'+cod+'&quot;,&quot;'+desc+'&quot;)" '+
+      'onmouseover="this.style.background=\'#e8f5e9\'" onmouseout="this.style.background=\'white\'">'+
+      '<span style="font-family:JetBrains Mono;font-weight:700;color:var(--primary);min-width:80px">'+cod+'</span>'+
+      '<span style="color:var(--text-secondary)">'+descShort+'</span></div>';
+  }).join('');
+  st.innerHTML='';
+}
+
+function selecionarTUSS(cod, desc){
+  document.getElementById("codigoTuss").value = cod;
+  document.getElementById("procedimento").value = desc;
+  document.getElementById("tussDropdown").style.display='none';
+  document.getElementById("tussStatus").innerHTML='<span style="color:var(--primary)">✓ '+cod+'</span>';
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#codigoTuss') && !e.target.closest('#tussDropdown'))
+    document.getElementById("tussDropdown").style.display='none';
+});
+
+// ============ BUSCAR CONVÊNIO ============
+function buscarConvenio(){
+  let q = document.getElementById("codigoConvenio").value.trim().toUpperCase();
+  let dd = document.getElementById("convDropdown");
+  if(!q){ dd.style.display='none'; document.getElementById("convenio").value=''; document.getElementById("convenioGrupo").value=''; return; }
+
+  let exact = CONVENIO_CACHE.find(c => c.sigla.toUpperCase() === q);
+  if(exact){
+    document.getElementById("convenio").value = exact.nome;
+    document.getElementById("convenioGrupo").value = exact.grupo;
+    dd.style.display='none';
+    return;
+  }
+
+  let results = CONVENIO_CACHE.filter(c => c.sigla.toUpperCase().includes(q) || c.nome.toUpperCase().includes(q)).slice(0, 8);
+  if(results.length === 0){ dd.style.display='none'; return; }
+
+  dd.style.display='block';
+  dd.innerHTML = results.map(function(c){
+    var s = c.sigla.replace(/"/g,'&quot;');
+    var n = c.nome.replace(/"/g,'&quot;');
+    var g = c.grupo.replace(/"/g,'&quot;');
+    return '<div style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #eee" '+
+      'onmousedown="selecionarConvenio(&quot;'+s+'&quot;,&quot;'+n+'&quot;,&quot;'+g+'&quot;)" '+
+      'onmouseover="this.style.background=\'#e8f5e9\'" onmouseout="this.style.background=\'white\'">'+
+      '<b>'+c.sigla+'</b> — '+c.nome+' <span style="color:var(--text-secondary);font-size:10px">('+c.grupo+')</span></div>';
+  }).join('');
+}
+
+function selecionarConvenio(sigla, nome, grupo){
+  document.getElementById("codigoConvenio").value = sigla;
+  document.getElementById("convenio").value = nome;
+  document.getElementById("convenioGrupo").value = grupo;
+  document.getElementById("convDropdown").style.display='none';
+}
+
+// ============ INIT (ASYNC - CARREGA TUDO DO SUPABASE) ============
+async function initApp(){
+  document.getElementById("grade").innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-secondary)">Carregando dados do Supabase...</p>';
+
+  try {
+    await Promise.all([
+      DB.loadCirurgias(),
+      DB.loadSalas(),
+      DB.loadMedicos(),
+      DB.loadTUSS(),
+      DB.loadConvenios(),
+      DB.loadEquipConfig()
+    ]);
+
+    construirIndice();
+    renderSalas();
+    carregarSelectSala();
+    atualizarHeader();
+    renderRecursosGrid();
+
+    let hoje = new Date().toISOString().split('T')[0];
+    document.getElementById("data").value = hoje;
+    document.getElementById("filtroData").value = hoje;
+    document.getElementById("filtroListaData").value = hoje;
+
+    console.log('✅ Sistema carregado: ' + dados.length + ' cirurgias, ' + MEDICOS_CACHE.length + ' médicos, ' + TUSS_CACHE.length + ' TUSS, ' + CONVENIO_CACHE.length + ' convênios');
+    showToast('✅ Sistema conectado ao Supabase');
+  } catch(err) {
+    console.error('Erro ao carregar:', err);
+    document.getElementById("grade").innerHTML = '<p style="text-align:center;padding:40px;color:var(--danger)">Erro ao conectar ao Supabase. Verifique a conexão.</p>';
+  }
+}
+
+initApp();
+
+</script>
+</body>
+</html>
