@@ -1665,7 +1665,7 @@ let CONVENIO_CACHE = [];
 const DB = {
   // --- CIRURGIAS ---
   async loadCirurgias(){
-    const {data,error} = await sb.from('cirurgias').select('*').order('data').order('horario');
+    const {data,error} = await sb.from('cirurgias').select('*').order('data').order('horario').limit(10000);
     if(error){ console.error('Erro cirurgias:', error); return; }
     dados = data.map(c=>({
       ...c,
@@ -1682,7 +1682,6 @@ const DB = {
       identificacao: c.identificacao || '',
       motivoCancelamento: c.motivo_cancelamento || '',
       motivoSuspensao: c.motivo_suspensao || '',
-      registrado_por: c.registrado_por || '',
     }));
   },
 
@@ -1697,10 +1696,13 @@ const DB = {
       codigo_convenio: c.codigoConvenio, convenio_grupo: c.convenioGrupo,
       recursos: c.recursos, observacoes: c.observacoes,
       cancelado: false, suspenso: false,
-      registrado_por: usuarioLogado ? usuarioLogado.nome : null
     };
     const {data,error} = await sb.from('cirurgias').insert(row).select();
     if(error){ alert('Erro ao salvar: '+error.message); return null; }
+    // Try to set registrado_por (column may not exist yet)
+    if(data[0] && typeof usuarioLogado !== 'undefined' && usuarioLogado){
+      try { await sb.from('cirurgias').update({registrado_por: usuarioLogado.nome}).eq('id', data[0].id); } catch(e){}
+    }
     return data[0];
   },
 
@@ -1729,7 +1731,7 @@ const DB = {
 
   // --- MÉDICOS ---
   async loadMedicos(){
-    const {data,error} = await sb.from('medicos').select('*').order('criado_em', {ascending:false});
+    const {data,error} = await sb.from('medicos').select('*').order('criado_em', {ascending:false}).limit(10000);
     if(error){ console.error('Erro medicos:', error); return; }
     MEDICOS_CACHE = data;
   },
@@ -1764,7 +1766,7 @@ const DB = {
 
   // --- TUSS ---
   async loadTUSS(){
-    const {data,error} = await sb.from('tuss').select('*').order('codigo');
+    const {data,error} = await sb.from('tuss').select('*').order('codigo').limit(10000);
     if(error){ console.error('Erro tuss:', error); return; }
     TUSS_CACHE = data;
   },
@@ -1782,7 +1784,7 @@ const DB = {
 
   // --- CONVÊNIOS ---
   async loadConvenios(){
-    const {data,error} = await sb.from('convenios').select('*').order('sigla');
+    const {data,error} = await sb.from('convenios').select('*').order('sigla').limit(1000);
     if(error){ console.error('Erro convenios:', error); return; }
     CONVENIO_CACHE = data;
   },
