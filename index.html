@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -670,6 +671,95 @@ tr.suspenso td { color: #e65100; font-style: italic; }
   letter-spacing: 0.3px;
 }
 
+/* DASHBOARD - Modern Futuristic */
+.dash-filters {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end;
+  padding: 4px 0;
+}
+.dash-filters .form-group { min-width: 150px; }
+.dash-filters .form-group label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); }
+.dash-filters select {
+  width: 100%; padding: 10px 14px; border: 2px solid rgba(46,125,50,0.2); border-radius: 12px;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; background: rgba(255,255,255,0.9);
+  transition: all 0.3s; backdrop-filter: blur(4px); cursor: pointer;
+}
+.dash-filters select:hover { border-color: var(--primary); }
+.dash-filters select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
+.dash-kpis {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; margin-bottom: 20px;
+}
+.dash-kpi {
+  background: linear-gradient(160deg, #ffffff 0%, #f4faf4 100%);
+  border-radius: 16px; padding: 22px 18px; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(46,125,50,0.06);
+  border-left: 5px solid var(--primary); position: relative; overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s;
+}
+.dash-kpi:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 16px 40px rgba(46,125,50,0.12); }
+.dash-kpi::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(46,125,50,0.04);
+}
+.dash-kpi::after {
+  content: ''; position: absolute; bottom: -20px; right: 10px;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: rgba(46,125,50,0.03);
+}
+.dash-kpi .kpi-val { font-size: 32px; font-weight: 800; color: var(--primary); font-family: 'JetBrains Mono', monospace; line-height: 1; letter-spacing: -1px; }
+.dash-kpi .kpi-lbl { font-size: 9.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-top: 8px; }
+.dash-kpi.warning { border-left-color: var(--warning); background: linear-gradient(160deg, #fff 0%, #fff8f0 100%); }
+.dash-kpi.warning .kpi-val { color: var(--warning); }
+.dash-kpi.warning::before { background: rgba(230,81,0,0.05); }
+.dash-kpi.danger { border-left-color: var(--danger); background: linear-gradient(160deg, #fff 0%, #fff5f5 100%); }
+.dash-kpi.danger .kpi-val { color: var(--danger); }
+.dash-kpi.danger::before { background: rgba(198,40,40,0.05); }
+.dash-kpi.accent { border-left-color: var(--accent); background: linear-gradient(160deg, #fff 0%, #f0f5ff 100%); }
+.dash-kpi.accent .kpi-val { color: var(--accent); }
+.dash-kpi.accent::before { background: rgba(10,77,162,0.05); }
+.dash-kpi.purple { border-left-color: #7b1fa2; background: linear-gradient(160deg, #fff 0%, #f8f0ff 100%); }
+.dash-kpi.purple .kpi-val { color: #7b1fa2; }
+.dash-kpi.purple::before { background: rgba(123,31,162,0.05); }
+.dash-row {
+  display: flex; gap: 18px; margin-bottom: 18px;
+}
+.dash-row > .card { flex: 1; }
+.dash-chart-card {
+  padding: 22px !important; border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06) !important;
+  border: 1px solid rgba(46,125,50,0.06) !important;
+  transition: box-shadow 0.3s;
+}
+.dash-chart-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 16px 40px rgba(0,0,0,0.08) !important; }
+.dash-chart-card .card-title {
+  font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--primary); margin-bottom: 14px;
+  padding-bottom: 10px; border-bottom: 2px solid rgba(46,125,50,0.1);
+  display: flex; align-items: center; gap: 6px;
+}
+.dash-chart-card .card-title::before {
+  content: ''; display: inline-block; width: 4px; height: 16px;
+  background: var(--primary); border-radius: 2px;
+}
+.dash-chart-card canvas { max-height: 320px; }
+.dash-rank-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.dash-rank-table th { text-align: left; padding: 10px 12px; background: linear-gradient(90deg, #f0f7f0, #f8fdf8); font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--primary); border-bottom: 2px solid rgba(46,125,50,0.15); }
+.dash-rank-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f0; transition: background 0.2s; }
+.dash-rank-table tr:hover td { background: rgba(46,125,50,0.03); }
+.dash-rank-pos { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 800; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.dash-rank-1 { background: linear-gradient(135deg, #ffd700, #ffed4a); color: #5a4200; }
+.dash-rank-2 { background: linear-gradient(135deg, #c0c0c0, #e0e0e0); color: #333; }
+.dash-rank-3 { background: linear-gradient(135deg, #cd7f32, #dda15e); color: #fff; }
+.dash-rank-n { background: #e8f5e9; color: var(--primary); }
+
+@media (max-width: 1024px) {
+  .dash-row { flex-direction: column; }
+  .dash-kpis { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 600px) {
+  .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* EDIT INLINE */
 .editing input {
   padding: 3px 5px;
@@ -802,6 +892,7 @@ tr.suspenso td { color: #e65100; font-style: italic; }
 </div>
 
 <div class="tabs">
+  <div class="tab" data-tab="dashboard">📊 Dashboard</div>
   <div class="tab active" data-tab="form">Agendamento</div>
   <div class="tab" data-tab="grade">Mapa Cirúrgico</div>
   <div class="tab" data-tab="disponibilidade">Disponibilidade</div>
@@ -1244,6 +1335,91 @@ tr.suspenso td { color: #e65100; font-style: italic; }
     </div>
   </div>
 
+  <!-- ========== PAINEL DASHBOARD ========== -->
+  <div class="panel" id="panel-dashboard">
+    <div class="card" style="border-radius:14px">
+      <div class="card-title" style="margin-bottom:16px">📊 Dashboard de Produção Cirúrgica</div>
+      <div class="dash-filters">
+        <div class="form-group">
+          <label>Ano</label>
+          <select id="dashAno" onchange="renderDashboard()"></select>
+        </div>
+        <div class="form-group">
+          <label>Mês</label>
+          <select id="dashMes" onchange="renderDashboard()">
+            <option value="">Todos</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+            <option value="03">Março</option><option value="04">Abril</option>
+            <option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option>
+            <option value="09">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Grupo Convênio</label>
+          <select id="dashGrupo" onchange="renderDashboard()">
+            <option value="">Todos</option>
+            <option value="Ana Costa">Ana Costa</option>
+            <option value="Amil">Amil</option>
+            <option value="Mercado">Mercado</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-kpis" id="dashKpis"></div>
+
+    <div class="dash-row">
+      <div class="card dash-chart-card" style="flex:2">
+        <div class="card-title">Cirurgias por Dia</div>
+        <canvas id="chartPorDia"></canvas>
+      </div>
+      <div class="card dash-chart-card" style="flex:1">
+        <div class="card-title">Distribuição por Grupo</div>
+        <canvas id="chartPorGrupo"></canvas>
+      </div>
+    </div>
+
+    <div class="dash-row">
+      <div class="card dash-chart-card">
+        <div class="card-title">Top 10 Cirurgiões</div>
+        <canvas id="chartTopMedicos"></canvas>
+      </div>
+      <div class="card dash-chart-card">
+        <div class="card-title">Top 10 Procedimentos</div>
+        <canvas id="chartTopProc"></canvas>
+      </div>
+    </div>
+
+    <div class="dash-row">
+      <div class="card dash-chart-card">
+        <div class="card-title">Cirurgias por Sala</div>
+        <canvas id="chartPorSala"></canvas>
+      </div>
+      <div class="card dash-chart-card">
+        <div class="card-title">Top Convênios</div>
+        <canvas id="chartPorConvenio"></canvas>
+      </div>
+    </div>
+
+    <!-- Row 4: Recursos + Status + Ranking -->
+    <div class="dash-row">
+      <div class="card dash-chart-card" style="flex:1">
+        <div class="card-title">Uso de Recursos / Equipamentos</div>
+        <canvas id="chartRecursos"></canvas>
+      </div>
+      <div class="card dash-chart-card" style="flex:1">
+        <div class="card-title">Status das Cirurgias</div>
+        <canvas id="chartStatus"></canvas>
+      </div>
+      <div class="card dash-chart-card" style="flex:1">
+        <div class="card-title">🏆 Ranking de Colaboradores</div>
+        <div id="rankColaboradores"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1454,6 +1630,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     if(panel) panel.classList.add('active');
     try {
       if(tab.dataset.tab==='grade') desenhar();
+      if(tab.dataset.tab==='dashboard'){ initDashFilters(); renderDashboard(); }
       if(tab.dataset.tab==='lista') renderLista();
       if(tab.dataset.tab==='medicos') renderMedicos();
       if(tab.dataset.tab==='convenios') renderConvenios();
@@ -1505,6 +1682,7 @@ const DB = {
       identificacao: c.identificacao || '',
       motivoCancelamento: c.motivo_cancelamento || '',
       motivoSuspensao: c.motivo_suspensao || '',
+      registrado_por: c.registrado_por || '',
     }));
   },
 
@@ -1518,7 +1696,8 @@ const DB = {
       lateralidade: c.lateralidade, convenio: c.convenio,
       codigo_convenio: c.codigoConvenio, convenio_grupo: c.convenioGrupo,
       recursos: c.recursos, observacoes: c.observacoes,
-      cancelado: false, suspenso: false
+      cancelado: false, suspenso: false,
+      registrado_por: usuarioLogado ? usuarioLogado.nome : null
     };
     const {data,error} = await sb.from('cirurgias').insert(row).select();
     if(error){ alert('Erro ao salvar: '+error.message); return null; }
@@ -2581,6 +2760,233 @@ function formatDate(d){
   if(!d) return '-';
   let p=d.split('-');
   return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+// ============ DASHBOARD ============
+let dashCharts = {};
+const DATALABEL_PLUGIN = { id:'dl', afterDatasetsDraw(chart){
+  let ctx = chart.ctx;
+  chart.data.datasets.forEach((ds,di)=>{
+    let meta = chart.getDatasetMeta(di);
+    if(!meta.hidden) meta.data.forEach((el,i)=>{
+      let val = ds.data[i];
+      if(val===0) return;
+      ctx.save();
+      ctx.fillStyle = '#1a2e1a';
+      ctx.font = 'bold 13px DM Sans';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      if(chart.config.type==='bar' && chart.options.indexAxis==='y'){
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(val, el.x+6, el.y);
+      } else if(chart.config.type==='bar'){
+        ctx.fillText(val, el.x, el.y-6);
+      }
+      ctx.restore();
+    });
+  });
+}};
+
+function initDashFilters(){
+  let anos = new Set();
+  dados.forEach(c=>{ if(c.data) anos.add(c.data.substring(0,4)); });
+  let sel = document.getElementById('dashAno');
+  sel.innerHTML = '<option value="">Todos</option>';
+  [...anos].sort().reverse().forEach(a=> sel.innerHTML += '<option value="'+a+'">'+a+'</option>');
+  let cy = new Date().getFullYear().toString();
+  if(anos.has(cy)) sel.value = cy;
+}
+
+function getDashData(){
+  let ano = document.getElementById('dashAno')?.value||'';
+  let mes = document.getElementById('dashMes')?.value||'';
+  let grupo = document.getElementById('dashGrupo')?.value||'';
+  let lista = dados.filter(c=>c.data);
+  if(ano) lista = lista.filter(c=>c.data.substring(0,4)===ano);
+  if(mes) lista = lista.filter(c=>c.data.substring(5,7)===mes);
+  if(grupo) lista = lista.filter(c=>(c.convenioGrupo||c.convenio_grupo||'')===grupo);
+  return lista;
+}
+
+function destroyChart(id){ if(dashCharts[id]){ dashCharts[id].destroy(); delete dashCharts[id]; } }
+
+function renderDashboard(){
+  let lista = getDashData();
+  let ativos = lista.filter(c=>!c.cancelado&&!c.suspenso);
+  let cancelados = lista.filter(c=>c.cancelado);
+  let suspensos = lista.filter(c=>c.suspenso);
+
+  let medicos = new Set(ativos.map(c=>c.crm).filter(Boolean));
+  let diasUnicos = new Set(ativos.map(c=>c.data));
+  let mediaDia = diasUnicos.size > 0 ? (ativos.length / diasUnicos.size).toFixed(1) : '0';
+  let taxaCanc = lista.length > 0 ? ((cancelados.length / lista.length)*100).toFixed(1) : '0';
+  let totalConv = new Set(ativos.map(c=>c.convenio||c.codigoConvenio).filter(Boolean)).size;
+
+  document.getElementById('dashKpis').innerHTML =
+    '<div class="dash-kpi"><div class="kpi-val">'+ativos.length+'</div><div class="kpi-lbl">Cirurgias Realizadas</div></div>'+
+    '<div class="dash-kpi accent"><div class="kpi-val">'+medicos.size+'</div><div class="kpi-lbl">Cirurgiões Ativos</div></div>'+
+    '<div class="dash-kpi purple"><div class="kpi-val">'+totalConv+'</div><div class="kpi-lbl">Convênios Ativos</div></div>'+
+    '<div class="dash-kpi"><div class="kpi-val">'+mediaDia+'</div><div class="kpi-lbl">Média / Dia</div></div>'+
+    '<div class="dash-kpi"><div class="kpi-val">'+diasUnicos.size+'</div><div class="kpi-lbl">Dias Operados</div></div>'+
+    '<div class="dash-kpi warning"><div class="kpi-val">'+cancelados.length+'</div><div class="kpi-lbl">Cancelamentos</div></div>'+
+    '<div class="dash-kpi danger"><div class="kpi-val">'+taxaCanc+'%</div><div class="kpi-lbl">Taxa Cancelamento</div></div>'+
+    '<div class="dash-kpi"><div class="kpi-val">'+suspensos.length+'</div><div class="kpi-lbl">Suspensões</div></div>';
+
+  let coresGrupo = {'Ana Costa':'#ff9800','Amil':'#7b1fa2','Mercado':'#2e7d32'};
+  let coresBarra = ['#1b5e20','#2e7d32','#43a047','#4caf50','#66bb6a','#81c784','#a5d6a7','#81c784','#66bb6a','#a5d6a7'];
+
+  // --- Cirurgias por Dia ---
+  destroyChart('chartPorDia');
+  let porDia = {};
+  ativos.forEach(c=>{ porDia[c.data]=(porDia[c.data]||0)+1; });
+  let diasOrd = Object.keys(porDia).sort();
+  dashCharts['chartPorDia'] = new Chart(document.getElementById('chartPorDia'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:diasOrd.map(d=>formatDate(d)),
+      datasets:[{label:'Cirurgias', data:diasOrd.map(d=>porDia[d]),
+        backgroundColor:'rgba(46,125,50,0.75)', borderColor:'#1b5e20', borderWidth:1, borderRadius:6}]},
+    options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:Math.max(...diasOrd.map(d=>porDia[d]))+5},x:{ticks:{maxRotation:45,font:{size:9}}}}}
+  });
+
+  // --- Distribuição por Grupo (donut com totais e %) ---
+  destroyChart('chartPorGrupo');
+  let porGrupo = {};
+  ativos.forEach(c=>{ let g=c.convenioGrupo||c.convenio_grupo||'Outros'; porGrupo[g]=(porGrupo[g]||0)+1; });
+  let gLabels = Object.keys(porGrupo);
+  let gTotal = gLabels.reduce((s,g)=>s+porGrupo[g],0);
+  dashCharts['chartPorGrupo'] = new Chart(document.getElementById('chartPorGrupo'), {
+    type:'doughnut',
+    data:{ labels:gLabels.map(g=>g+' ('+porGrupo[g]+' - '+((porGrupo[g]/gTotal)*100).toFixed(1)+'%)'),
+      datasets:[{data:gLabels.map(g=>porGrupo[g]),
+        backgroundColor:gLabels.map(g=>coresGrupo[g]||'#90a4ae'), borderWidth:3, borderColor:'#fff'}]},
+    options:{responsive:true, cutout:'60%',
+      plugins:{legend:{position:'bottom', labels:{font:{size:12,weight:'bold'},padding:14,usePointStyle:true,pointStyleWidth:12}}}}
+  });
+
+  // --- Top 10 Cirurgiões (MAIÚSCULO) ---
+  destroyChart('chartTopMedicos');
+  let porMed = {};
+  ativos.forEach(c=>{ if(c.medico) porMed[c.medico.toUpperCase()]=(porMed[c.medico.toUpperCase()]||0)+1; });
+  let topMed = Object.entries(porMed).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  dashCharts['chartTopMedicos'] = new Chart(document.getElementById('chartTopMedicos'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:topMed.map(m=>m[0].substring(0,28)),
+      datasets:[{data:topMed.map(m=>m[1]), backgroundColor:coresBarra, borderRadius:6}]},
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:topMed.length?topMed[0][1]+3:5},y:{ticks:{font:{size:10}}}}}
+  });
+
+  // --- Top 10 Procedimentos ---
+  destroyChart('chartTopProc');
+  let porProc = {};
+  ativos.forEach(c=>{ if(c.procedimento) porProc[c.procedimento]=(porProc[c.procedimento]||0)+1; });
+  let topProc = Object.entries(porProc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  dashCharts['chartTopProc'] = new Chart(document.getElementById('chartTopProc'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:topProc.map(p=>p[0].substring(0,32)),
+      datasets:[{data:topProc.map(p=>p[1]), backgroundColor:coresBarra, borderRadius:6}]},
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:topProc.length?topProc[0][1]+3:5},y:{ticks:{font:{size:11}}}}}
+  });
+
+  // --- Por Sala ---
+  destroyChart('chartPorSala');
+  let porSala = {};
+  ativos.forEach(c=>{ porSala[c.sala||'?']=(porSala[c.sala||'?']||0)+1; });
+  let salasOrd = Object.keys(porSala).sort();
+  dashCharts['chartPorSala'] = new Chart(document.getElementById('chartPorSala'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:salasOrd,
+      datasets:[{data:salasOrd.map(s=>porSala[s]),
+        backgroundColor:'rgba(46,125,50,0.75)', borderColor:'#1b5e20', borderWidth:1, borderRadius:6}]},
+    options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:Math.max(...salasOrd.map(s=>porSala[s]))+5}}}
+  });
+
+  // --- Top Convênios ---
+  destroyChart('chartPorConvenio');
+  let porConv = {};
+  ativos.forEach(c=>{ let cv=c.convenio||c.codigoConvenio||'?'; porConv[cv]=(porConv[cv]||0)+1; });
+  let topConv = Object.entries(porConv).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  dashCharts['chartPorConvenio'] = new Chart(document.getElementById('chartPorConvenio'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:topConv.map(cv=>cv[0].substring(0,25)),
+      datasets:[{data:topConv.map(cv=>cv[1]),
+        backgroundColor:topConv.map(cv=>{
+          let conv = CONVENIO_CACHE.find(x=>x.sigla===cv[0]||x.nome===cv[0]);
+          return coresGrupo[conv?conv.grupo:'']||'#78909c';
+        }), borderRadius:6}]},
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:topConv.length?topConv[0][1]+3:5},y:{ticks:{font:{size:10}}}}}
+  });
+
+  // --- Status ---
+  destroyChart('chartStatus');
+  let stData = [ativos.length, cancelados.length, suspensos.length];
+  let stTotal = stData.reduce((s,v)=>s+v,0);
+  dashCharts['chartStatus'] = new Chart(document.getElementById('chartStatus'), {
+    type:'doughnut',
+    data:{ labels:['Realizadas ('+ativos.length+' - '+(stTotal?(ativos.length/stTotal*100).toFixed(1):0)+'%)',
+                    'Canceladas ('+cancelados.length+')',
+                    'Suspensas ('+suspensos.length+')'],
+      datasets:[{data:stData, backgroundColor:['#2e7d32','#c62828','#e65100'], borderWidth:3, borderColor:'#fff'}]},
+    options:{responsive:true, cutout:'60%', plugins:{legend:{position:'bottom', labels:{font:{size:11,weight:'bold'},usePointStyle:true}}}}
+  });
+
+  // --- Recursos ---
+  destroyChart('chartRecursos');
+  let recLabels = ['Vídeo','Escopia','Microscópio','Ultracision','UTI','Congelação','Transfusão'];
+  let recKeys = ['video','escopia','microscopio','ultracision','uti','congelacao','transfusao'];
+  let recCounts = recKeys.map(k=> ativos.filter(c=>(c.recursos||{})[k]).length);
+  dashCharts['chartRecursos'] = new Chart(document.getElementById('chartRecursos'), {
+    type:'bar', plugins:[DATALABEL_PLUGIN],
+    data:{ labels:recLabels,
+      datasets:[{data:recCounts,
+        backgroundColor:['#1565c0','#6a1b9a','#00838f','#e65100','#c62828','#2e7d32','#ff8f00'], borderRadius:6}]},
+    options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1},suggestedMax:Math.max(...recCounts)+5}}}
+  });
+
+  // --- Ranking Colaboradores ---
+  renderRankColaboradores(ativos);
+}
+
+async function renderRankColaboradores(ativos){
+  let container = document.getElementById('rankColaboradores');
+
+  // Count registrations from all dados (not filtered)
+  let porUser = {};
+  dados.forEach(c=>{
+    let reg = c.registrado_por;
+    if(reg){ porUser[reg] = (porUser[reg]||0)+1; }
+  });
+
+  let ranking = Object.entries(porUser).sort((a,b)=>b[1]-a[1]);
+
+  if(ranking.length === 0){
+    // If no registrado_por data yet, show registered users
+    let {data:usuarios} = await sb.from('usuarios').select('nome').eq('status','aprovado');
+    if(!usuarios||usuarios.length===0){
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:12px;padding:12px">Nenhum colaborador cadastrado.</p>';
+      return;
+    }
+    let html = '<table class="dash-rank-table"><thead><tr><th>#</th><th>Colaborador</th><th>Agendamentos</th></tr></thead><tbody>';
+    usuarios.forEach((u,i)=>{
+      let posClass = i===0?'dash-rank-1':i===1?'dash-rank-2':i===2?'dash-rank-3':'dash-rank-n';
+      html += '<tr><td><span class="dash-rank-pos '+posClass+'">'+(i+1)+'</span></td>';
+      html += '<td style="font-weight:600">'+u.nome.toUpperCase()+'</td>';
+      html += '<td style="text-align:center">—</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p style="font-size:10px;color:#aaa;margin-top:8px;text-align:center">Dados de ranking serão preenchidos conforme novos agendamentos.</p>';
+    container.innerHTML = html;
+    return;
+  }
+
+  let html = '<table class="dash-rank-table"><thead><tr><th>#</th><th>Colaborador</th><th>Agendamentos</th></tr></thead><tbody>';
+  ranking.forEach((r,i)=>{
+    let posClass = i===0?'dash-rank-1':i===1?'dash-rank-2':i===2?'dash-rank-3':'dash-rank-n';
+    html += '<tr><td><span class="dash-rank-pos '+posClass+'">'+(i+1)+'</span></td>';
+    html += '<td style="font-weight:600">'+r[0].toUpperCase()+'</td>';
+    html += '<td style="text-align:center;font-weight:700;font-family:JetBrains Mono,monospace">'+r[1]+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
 
 // ============ PDF MAPA ============
