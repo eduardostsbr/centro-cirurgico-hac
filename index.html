@@ -1094,6 +1094,7 @@ tr.suspenso td { color: #e65100; font-style: italic; }
 
     <div class="btn-row">
       <button class="btn btn-success" id="btnConfirmar" onclick="salvar()">✓ Confirmar Agendamento</button>
+      <button class="btn btn-danger" id="btnCancelarEdicao" onclick="cancelarEdicaoCirurgia()" style="display:none">✕ Cancelar Edição</button>
       <button class="btn btn-outline" onclick="limparForm()">Limpar</button>
       <button class="btn btn-outline" onclick="gerarPDF()">📄 PDF Mapa</button>
       <button class="btn btn-outline" onclick="pdfOcorrencias()">📋 PDF Ocorrências</button>
@@ -2209,6 +2210,7 @@ function limparForm(){
     let btn = document.getElementById("btnConfirmar");
     btn.innerText = '✓ Confirmar Agendamento';
     btn.style.background = '';
+    document.getElementById("btnCancelarEdicao").style.display = 'none';
   }
   // Limpar rascunho salvo
   clearFormDraft();
@@ -2567,6 +2569,7 @@ async function salvar(){
     editandoId = null;
     btn.style.background = '';
     btn.disabled = false; btn.innerText = '✓ Confirmar Agendamento';
+    document.getElementById("btnCancelarEdicao").style.display = 'none';
     showToast('✅ Cirurgia atualizada com sucesso!');
     clearFormDraft();
     atualizarHeader();
@@ -2675,7 +2678,7 @@ async function reativar(i){
   if(confirm("Reativar cirurgia de "+dados[i].paciente+"?")){
     let alterarData = confirm("Deseja alterar a data da cirurgia?");
     if(alterarData){
-      let novaData = prompt("Nova data (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
+      let novaData = prompt("Nova data (AAAA-MM-DD):", hojeLocal());
       let novoHorario = prompt("Novo horário (HH:MM):", dados[i].horario);
     }
     let updates = {cancelado:false, suspenso:false, motivo_cancelamento:null, motivo_suspensao:null};
@@ -2959,6 +2962,11 @@ function renderLista(){
       '</td>'+
     '</tr>';
   }).join('');
+}
+
+function hojeLocal(){
+  let d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
 function formatDate(d){
@@ -3267,6 +3275,7 @@ function carregarParaEditar(cir){
   let btn = document.getElementById("btnConfirmar");
   btn.innerText = '✏️ Atualizar Agendamento';
   btn.style.background = '#e65100';
+  document.getElementById("btnCancelarEdicao").style.display = '';
 
   // Scroll to top
   document.getElementById("panel-form").scrollIntoView({behavior:'smooth'});
@@ -3275,9 +3284,19 @@ function carregarParaEditar(cir){
   autoSaveForm();
 }
 
+function cancelarEdicaoCirurgia(){
+  editandoId = null;
+  let btn = document.getElementById("btnConfirmar");
+  btn.innerText = '✓ Confirmar Agendamento';
+  btn.style.background = '';
+  document.getElementById("btnCancelarEdicao").style.display = 'none';
+  limparForm();
+  showToast('Edição cancelada');
+}
+
 // ============ PDF MAPA ============
 function gerarPDF(){
-  let dataAtual = document.getElementById("filtroData").value || new Date().toISOString().split('T')[0];
+  let dataAtual = document.getElementById("filtroData").value || hojeLocal();
   let fData = prompt("Data do Mapa Cirúrgico (DD/MM/AAAA):", formatDate(dataAtual));
   if(!fData) return;
   if(fData.includes('/')){ let p=fData.split('/'); fData=p[2]+'-'+p[1]+'-'+p[0]; }
@@ -3514,7 +3533,7 @@ function pdfOcorrencias(){
 
 // ============ HEADER ============
 function atualizarHeader(){
-  let hoje = new Date().toISOString().split('T')[0];
+  let hoje = hojeLocal();
   let hojeCir = dados.filter(c=>c.data===hoje&&!c.cancelado&&!c.suspenso).length;
   document.getElementById("headerData").innerText = formatDate(hoje);
   document.getElementById("headerTotal").innerText = hojeCir + " cirurgia(s) hoje";
@@ -3655,7 +3674,7 @@ function renderDispTabela(data, diaList, salaFiltro, horaInicio, horaFim, contai
     let slots = calcularSlots(cirs, horaInicio, horaFim);
 
     if(slots.length === 0){
-      html += '<tr><td style="font-weight:700">'+salaName+'</td><td>07:00 - 19:00</td><td><span style="color:var(--primary);font-weight:700">🟢 LIVRE</span></td><td colspan="4" style="color:#aaa">Dia inteiro disponível</td></tr>';
+      html += '<tr><td style="font-weight:700">'+salaName+'</td><td>07:00 - 19:00</td><td><span style="color:var(--primary);font-weight:700">🟢 LIVRE</span></td><td colspan="5" style="color:#aaa">Dia inteiro disponível</td></tr>';
     } else {
       let first = true;
       slots.forEach(sl=>{
@@ -3665,7 +3684,7 @@ function renderDispTabela(data, diaList, salaFiltro, horaInicio, horaFim, contai
         if(sl.livre){
           let dur = sl.fim - sl.ini;
           html += '<td><span style="color:var(--primary);font-weight:700">🟢 LIVRE</span></td>';
-          html += '<td colspan="4" style="color:var(--primary);font-size:10px">Disponível — '+dur+' minutos</td><td></td>';
+          html += '<td colspan="5" style="color:var(--primary);font-size:10px">Disponível — '+dur+' minutos</td>';
         } else {
           html += '<td><span style="color:var(--danger);font-weight:600;font-size:10px">🔴 OCUPADO</span></td>';
           html += '<td>'+sl.paciente+'</td><td>'+sl.medico+'</td>';
@@ -4259,7 +4278,7 @@ async function initApp(){
     atualizarHeader();
     renderRecursosGrid();
 
-    let hoje = new Date().toISOString().split('T')[0];
+    let hoje = hojeLocal();
     document.getElementById("data").value = hoje;
     document.getElementById("filtroData").value = hoje;
     document.getElementById("filtroListaData").value = hoje;
