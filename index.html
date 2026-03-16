@@ -804,6 +804,53 @@ tr.suspenso td { color: #e65100; font-style: italic; }
   .tabs { padding: 0 6px; }
   .tab { padding: 8px 10px; font-size: 11px; }
 }
+/* CUSTOM MODAL */
+#modalOverlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.45); z-index:10000;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity 0.2s;
+}
+#modalOverlay.show { opacity:1; }
+#modalOverlay .modal-box {
+  background:white; border-radius:14px; padding:28px;
+  width:440px; max-width:92vw; max-height:80vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  transform:scale(0.95); transition:transform 0.2s;
+}
+#modalOverlay.show .modal-box { transform:scale(1); }
+.modal-title {
+  font-size:16px; font-weight:700; color:var(--primary);
+  margin-bottom:12px; line-height:1.3;
+}
+.modal-msg {
+  font-size:13px; color:var(--text); line-height:1.6;
+  white-space:pre-line; margin-bottom:16px;
+}
+.modal-input {
+  width:100%; padding:10px 12px; border:1.5px solid var(--border);
+  border-radius:8px; font-size:14px; font-family:'DM Sans',sans-serif;
+  margin-bottom:16px; background:#fafbfd;
+}
+.modal-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(46,125,50,0.15); }
+.modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+.modal-btn {
+  padding:9px 22px; border:none; border-radius:8px;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all 0.2s;
+}
+.modal-btn-ok { background:var(--primary); color:white; }
+.modal-btn-ok:hover { background:var(--primary-dark); }
+.modal-btn-cancel { background:#f0f0f0; color:var(--text); }
+.modal-btn-cancel:hover { background:#e0e0e0; }
+.modal-btn-danger { background:var(--danger); color:white; }
+.modal-btn-danger:hover { background:#8e0000; }
+.modal-select-list { margin-bottom:16px; }
+.modal-select-item {
+  padding:10px 14px; border:1.5px solid var(--border); border-radius:8px;
+  margin-bottom:6px; cursor:pointer; font-size:13px; transition:all 0.15s;
+}
+.modal-select-item:hover { border-color:var(--primary); background:var(--primary-light); }
 </style>
 </head>
 <body>
@@ -1509,7 +1556,80 @@ tr.suspenso td { color: #e65100; font-style: italic; }
   </div>
 </div>
 
+<div id="modalOverlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <div id="modalBody"></div>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
 <script>
+
+// ============ CUSTOM MODAL SYSTEM ============
+let _modalHideTimer = null;
+function _showModal(){ clearTimeout(_modalHideTimer); let o=document.getElementById('modalOverlay'); o.style.display='flex'; requestAnimationFrame(()=>o.classList.add('show')); }
+function _hideModal(){ let o=document.getElementById('modalOverlay'); o.classList.remove('show'); _modalHideTimer = setTimeout(()=>o.style.display='none',200); }
+
+function modalAlert(msg, title){
+  return new Promise(resolve=>{
+    document.getElementById('modalTitle').innerText = title||'Aviso';
+    document.getElementById('modalMsg').innerText = msg||'';
+    document.getElementById('modalBody').innerHTML = '';
+    document.getElementById('modalBtns').innerHTML = '<button class="modal-btn modal-btn-ok" id="modalOk">OK</button>';
+    _showModal();
+    document.getElementById('modalOk').onclick = ()=>{ _hideModal(); resolve(); };
+    document.getElementById('modalOk').focus();
+  });
+}
+
+function modalPrompt(msg, defaultVal, title){
+  return new Promise(resolve=>{
+    document.getElementById('modalTitle').innerText = title||'';
+    document.getElementById('modalMsg').innerText = msg||'';
+    document.getElementById('modalBody').innerHTML = '<input class="modal-input" id="modalInput" value="'+(defaultVal!=null?String(defaultVal).replace(/"/g,'&quot;'):'')+'"/>';
+    document.getElementById('modalBtns').innerHTML = '<button class="modal-btn modal-btn-cancel" id="modalCancel">Cancelar</button><button class="modal-btn modal-btn-ok" id="modalOk">OK</button>';
+    _showModal();
+    let inp = document.getElementById('modalInput');
+    inp.focus(); inp.select();
+    document.getElementById('modalOk').onclick = ()=>{ _hideModal(); resolve(inp.value); };
+    document.getElementById('modalCancel').onclick = ()=>{ _hideModal(); resolve(null); };
+    inp.onkeydown = (e)=>{ if(e.key==='Enter'){ _hideModal(); resolve(inp.value); } if(e.key==='Escape'){ _hideModal(); resolve(null); } };
+  });
+}
+
+function modalConfirm(msg, title){
+  return new Promise(resolve=>{
+    document.getElementById('modalTitle').innerText = title||'Confirmação';
+    document.getElementById('modalMsg').innerText = msg||'';
+    document.getElementById('modalBody').innerHTML = '';
+    document.getElementById('modalBtns').innerHTML = '<button class="modal-btn modal-btn-cancel" id="modalCancel">Cancelar</button><button class="modal-btn modal-btn-ok" id="modalOk">Confirmar</button>';
+    _showModal();
+    document.getElementById('modalOk').onclick = ()=>{ _hideModal(); resolve(true); };
+    document.getElementById('modalCancel').onclick = ()=>{ _hideModal(); resolve(false); };
+    document.getElementById('modalOk').focus();
+  });
+}
+
+function modalSelect(msg, options, title){
+  return new Promise(resolve=>{
+    document.getElementById('modalTitle').innerText = title||'Selecione';
+    document.getElementById('modalMsg').innerText = msg||'';
+    let html = '<div class="modal-select-list">';
+    options.forEach((opt,i)=>{
+      html += '<div class="modal-select-item" data-idx="'+i+'">'+(i+1)+'. '+opt+'</div>';
+    });
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalBtns').innerHTML = '<button class="modal-btn modal-btn-cancel" id="modalCancel">Cancelar</button>';
+    _showModal();
+    document.querySelectorAll('.modal-select-item').forEach(el=>{
+      el.onclick = ()=>{ _hideModal(); resolve(parseInt(el.dataset.idx)); };
+    });
+    document.getElementById('modalCancel').onclick = ()=>{ _hideModal(); resolve(null); };
+  });
+}
 
 
 // ============ AUTENTICAÇÃO ============
@@ -1687,7 +1807,7 @@ async function aprovarUsuario(cpf){
 }
 
 async function rejeitarUsuario(cpf){
-  if(confirm('Rejeitar este usuário?')){
+  if(await modalConfirm('Rejeitar este usuário?', 'Rejeitar')){
     await sb.from('usuarios').update({status:'rejeitado'}).eq('cpf',cpf);
     showToast('Usuário rejeitado');
     renderAutorizacoes();
@@ -1726,7 +1846,7 @@ try {
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 } catch(e) {
   console.error('Erro ao criar cliente Supabase:', e);
-  alert('Erro ao conectar ao Supabase. Verifique a conexão com internet.');
+  modalAlert('Erro ao conectar ao Supabase. Verifique a conexão com internet.', 'Erro de Conexão');
 }
 
 // ============ DADOS (carregados do Supabase) ============
@@ -1777,7 +1897,7 @@ const DB = {
       cancelado: false, suspenso: false,
     };
     const {data,error} = await sb.from('cirurgias').insert(row).select();
-    if(error){ alert('Erro ao salvar: '+error.message); return null; }
+    if(error){ await modalAlert('Erro ao salvar: '+error.message, 'Erro'); return null; }
     // Try to set registrado_por (column may not exist yet)
     if(data[0] && typeof usuarioLogado !== 'undefined' && usuarioLogado){
       try { await sb.from('cirurgias').update({registrado_por: usuarioLogado.nome}).eq('id', data[0].id); } catch(e){}
@@ -1840,12 +1960,12 @@ const DB = {
           nome: m.nome, uf: m.uf||'SP',
           especialidade: m.especialidade||'', origem: m.origem||'manual'
         }).eq('crm', m.crm).select();
-        if(e2){ console.error('Erro update medico:', e2); alert('Erro ao atualizar médico: '+e2.message); return false; }
+        if(e2){ console.error('Erro update medico:', e2); await modalAlert('Erro ao atualizar médico: '+e2.message, 'Erro'); return false; }
         console.log('Médico atualizado:', d2);
         return true;
       }
       console.error('Erro insert medico:', error);
-      alert('Erro ao salvar médico: '+error.message+'\n\nCódigo: '+error.code+'\nDetalhes: '+(error.details||''));
+      await modalAlert('Erro ao salvar médico: '+error.message+'\n\nCódigo: '+error.code+'\nDetalhes: '+(error.details||''), 'Erro');
       return false;
     }
     console.log('Médico inserido:', data);
@@ -1987,12 +2107,12 @@ function getLimite(recurso, data){
   return max;
 }
 
-function solicitarOverrideUTI(){
+async function solicitarOverrideUTI(){
   let data = document.getElementById("data").value;
-  if(!data){ alert('Selecione a data primeiro.'); return; }
-  let senha = prompt('🔒 Autorização administrativa necessária.\nDigite a senha para aumentar o limite de UTI para hoje:');
+  if(!data){ await modalAlert('Selecione a data primeiro.'); return; }
+  let senha = await modalPrompt('Digite a senha para aumentar o limite de UTI para hoje:', '', '🔒 Autorização Administrativa');
   if(senha === 'hac@2026'){
-    let novoLimite = parseInt(prompt('Novo limite de UTI para '+formatDate(data)+' (atual: '+getLimite('uti',data)+'):'));
+    let novoLimite = parseInt(await modalPrompt('Novo limite de UTI para '+formatDate(data)+' (atual: '+getLimite('uti',data)+'):', getLimite('uti',data), 'Limite UTI'));
     if(novoLimite && novoLimite > 0){
       if(!limiteOverrides[data]) limiteOverrides[data] = {};
       limiteOverrides[data].uti = novoLimite;
@@ -2002,7 +2122,7 @@ function solicitarOverrideUTI(){
       showToast('✓ Limite UTI alterado para '+novoLimite+' em '+formatDate(data));
     }
   } else if(senha !== null){
-    alert('❌ Senha incorreta.');
+    await modalAlert('❌ Senha incorreta.', 'Erro');
   }
 }
 
@@ -2598,12 +2718,12 @@ async function salvar(){
   if(!c.procedimento && !c.codigoTuss) camposFaltando.push('Procedimento/TUSS');
   if(!c.codigoConvenio && !c.convenio) camposFaltando.push('Convênio');
   if(camposFaltando.length > 0){
-    alert("Preencha os campos obrigatórios:\n\n• " + camposFaltando.join("\n• "));
+    await modalAlert("Preencha os campos obrigatórios:\n\n• " + camposFaltando.join("\n• "), 'Campos Obrigatórios');
     return;
   }
   let btn = document.getElementById("btnConfirmar");
   if(btn.classList.contains('disabled')){
-    alert("Existem conflitos que impedem o agendamento.");
+    await modalAlert("Existem conflitos que impedem o agendamento.", 'Conflitos');
     return;
   }
   btn.disabled = true; btn.innerText = 'Salvando...';
@@ -2650,7 +2770,7 @@ const MOTIVOS_SUSPENSAO = [
 ];
 
 async function cancelar(i){
-  let motivo = promptMotivo('Cancelar cirurgia de '+dados[i].paciente, MOTIVOS_CANCELAMENTO);
+  let motivo = await promptMotivo('Cancelar cirurgia de '+dados[i].paciente, MOTIVOS_CANCELAMENTO);
   if(motivo !== null){
     await DB.updateCirurgia(dados[i].id, {cancelado:true, motivo_cancelamento:motivo});
     await DB.loadCirurgias();
@@ -2659,7 +2779,7 @@ async function cancelar(i){
   }
 }
 async function suspender(i){
-  let motivo = promptMotivo('Suspender cirurgia de '+dados[i].paciente, MOTIVOS_SUSPENSAO);
+  let motivo = await promptMotivo('Suspender cirurgia de '+dados[i].paciente, MOTIVOS_SUSPENSAO);
   if(motivo !== null){
     await DB.updateCirurgia(dados[i].id, {suspenso:true, motivo_suspensao:motivo});
     await DB.loadCirurgias();
@@ -2668,32 +2788,27 @@ async function suspender(i){
   }
 }
 
-function promptMotivo(titulo, opcoes){
-  let lista = opcoes.map((m,i)=>(i+1)+'. '+m).join('\n');
-  let resp = prompt(titulo+'\n\nSelecione o motivo (número):\n'+lista+'\n\nOu digite o motivo:');
-  if(resp === null) return null;
-  let num = parseInt(resp);
-  if(num >= 1 && num <= opcoes.length){
-    let motivo = opcoes[num-1];
-    if(motivo === 'Outro'){
-      let custom = prompt('Descreva o motivo:');
-      return custom || 'Outro (não especificado)';
-    }
-    return motivo;
+async function promptMotivo(titulo, opcoes){
+  let idx = await modalSelect('Selecione o motivo:', opcoes, titulo);
+  if(idx === null) return null;
+  let motivo = opcoes[idx];
+  if(motivo === 'Outro'){
+    let custom = await modalPrompt('Descreva o motivo:', '', 'Motivo');
+    return custom || 'Outro (não especificado)';
   }
-  return resp || 'Não informado';
+  return motivo;
 }
 
 async function reativar(i){
-  if(confirm("Reativar cirurgia de "+dados[i].paciente+"?")){
-    let alterarData = confirm("Deseja alterar a data da cirurgia?");
-    if(alterarData){
-      let novaData = prompt("Nova data (AAAA-MM-DD):", hojeLocal());
-      let novoHorario = prompt("Novo horário (HH:MM):", dados[i].horario);
-    }
+  if(await modalConfirm("Reativar cirurgia de "+dados[i].paciente+"?", 'Reativar Cirurgia')){
     let updates = {cancelado:false, suspenso:false, motivo_cancelamento:null, motivo_suspensao:null};
-    if(novaData && /^\d{4}-\d{2}-\d{2}$/.test(novaData)) updates.data = novaData;
-    if(novoHorario && /^\d{2}:\d{2}$/.test(novoHorario)) updates.horario = novoHorario;
+    let alterarData = await modalConfirm("Deseja alterar a data da cirurgia?", 'Alterar Data');
+    if(alterarData){
+      let novaData = await modalPrompt("Nova data (AAAA-MM-DD):", hojeLocal(), 'Nova Data');
+      let novoHorario = await modalPrompt("Novo horário (HH:MM):", dados[i].horario, 'Novo Horário');
+      if(novaData && /^\d{4}-\d{2}-\d{2}$/.test(novaData)) updates.data = novaData;
+      if(novoHorario && /^\d{2}:\d{2}$/.test(novoHorario)) updates.horario = novoHorario;
+    }
     await DB.updateCirurgia(dados[i].id, updates);
     await DB.loadCirurgias();
     showToast('✓ Cirurgia reativada: '+dados[i].paciente);
@@ -2703,15 +2818,15 @@ async function reativar(i){
 
 async function editarCirurgia(i){
   let c = dados[i];
-  let novaData = prompt("Data (AAAA-MM-DD):", c.data);
+  let novaData = await modalPrompt("Data (AAAA-MM-DD):", c.data, 'Editar Cirurgia — Data');
   if(novaData === null) return;
-  let novoHorario = prompt("Horário (HH:MM):", c.horario);
-  let novaSala = prompt("Sala (ex: Sala 1):", c.sala);
-  let novoId = prompt("Prontuário/Identificação:", c.identificacao||'');
-  let novoPaciente = prompt("Paciente:", c.paciente);
-  let novoMedico = prompt("Cirurgião:", c.medico);
-  let novoProcedimento = prompt("Procedimento:", c.procedimento);
-  let novoTempo = prompt("Tempo (min):", c.tempo||60);
+  let novoHorario = await modalPrompt("Horário (HH:MM):", c.horario, 'Horário');
+  let novaSala = await modalPrompt("Sala (ex: Sala 1):", c.sala, 'Sala');
+  let novoId = await modalPrompt("Prontuário/Identificação:", c.identificacao||'', 'Identificação');
+  let novoPaciente = await modalPrompt("Paciente:", c.paciente, 'Paciente');
+  let novoMedico = await modalPrompt("Cirurgião:", c.medico, 'Cirurgião');
+  let novoProcedimento = await modalPrompt("Procedimento:", c.procedimento, 'Procedimento');
+  let novoTempo = await modalPrompt("Tempo (min):", c.tempo||60, 'Tempo Estimado');
 
   let edits = {};
   if(novaData) edits.data = novaData;
@@ -2729,7 +2844,7 @@ async function editarCirurgia(i){
 }
 
 async function excluir(i){
-  if(confirm("Excluir permanentemente a cirurgia de "+dados[i].paciente+"?")){
+  if(await modalConfirm("Excluir permanentemente a cirurgia de "+dados[i].paciente+"?", '⚠️ Excluir Cirurgia')){
     await DB.deleteCirurgia(dados[i].id);
     await DB.loadCirurgias();
     desenhar(); renderLista();
@@ -2812,7 +2927,7 @@ async function onDrop(e, salaDestino){
   }
 
   if(conflito){
-    if(!confirm('⚠️ Conflito de horário na '+salaDestino+'!\n\nDeseja mover mesmo assim?')){
+    if(!await modalConfirm('Conflito de horário na '+salaDestino+'!\n\nDeseja mover mesmo assim?', '⚠️ Conflito de Horário')){
       draggedIdx = null;
       return;
     }
@@ -3215,8 +3330,8 @@ async function renderRankColaboradores(ativos){
 // ============ EDITAR CIRURGIA (BUSCAR E CARREGAR NO FORM) ============
 let editandoId = null;
 
-function abrirBuscaEditar(){
-  let termo = prompt("Buscar cirurgia por Nome do Paciente ou Nº Identificação:");
+async function abrirBuscaEditar(){
+  let termo = await modalPrompt("Buscar cirurgia por Nome do Paciente ou Nº Identificação:", '', '🔍 Buscar para Editar');
   if(!termo || !termo.trim()) return;
   termo = termo.trim().toLowerCase();
 
@@ -3228,23 +3343,13 @@ function abrirBuscaEditar(){
   ).slice(0, 20);
 
   if(resultados.length === 0){
-    alert("Nenhuma cirurgia encontrada para: " + termo);
+    await modalAlert("Nenhuma cirurgia encontrada para: " + termo, 'Sem Resultados');
     return;
   }
 
-  // Mostrar lista para selecionar
-  let msg = "Selecione a cirurgia (digite o número):\n\n";
-  resultados.forEach((c, i) => {
-    msg += (i+1) + ". " + formatDate(c.data) + " " + c.horario + " | " + c.sala + " | " + c.paciente + " | " + (c.procedimento||'').substring(0,40) + "\n";
-  });
-
-  let escolha = prompt(msg);
-  if(!escolha) return;
-  let idx = parseInt(escolha) - 1;
-  if(isNaN(idx) || idx < 0 || idx >= resultados.length){
-    alert("Opção inválida");
-    return;
-  }
+  let opcoes = resultados.map(c => formatDate(c.data) + " " + c.horario + " | " + c.sala + " | " + c.paciente + " | " + (c.procedimento||'').substring(0,40));
+  let idx = await modalSelect('Selecione a cirurgia:', opcoes, 'Resultados da Busca');
+  if(idx === null) return;
 
   carregarParaEditar(resultados[idx]);
 }
@@ -3305,17 +3410,17 @@ function cancelarEdicaoCirurgia(){
 }
 
 // ============ PDF MAPA ============
-function gerarPDF(){
+async function gerarPDF(){
   let dataAtual = document.getElementById("filtroData").value || hojeLocal();
-  let fData = prompt("Data do Mapa Cirúrgico (DD/MM/AAAA):", formatDate(dataAtual));
+  let fData = await modalPrompt("Data do Mapa Cirúrgico (DD/MM/AAAA):", formatDate(dataAtual), '📄 Gerar PDF');
   if(!fData) return;
   if(fData.includes('/')){ let p=fData.split('/'); fData=p[2]+'-'+p[1]+'-'+p[0]; }
 
-  let respProc2 = prompt("Incluir Procedimento Secundário no mapa? (S/N):", "S");
+  let respProc2 = await modalPrompt("Incluir Procedimento Secundário no mapa? (S/N):", "S", 'Procedimento Secundário');
   let mostrarProc2 = respProc2 && respProc2.toUpperCase().startsWith("S");
 
   let lista = dados.filter(c=>!c.cancelado&&!c.suspenso&&c.data===fData);
-  if(lista.length===0){ alert("Nenhuma cirurgia agendada para "+formatDate(fData)); return; }
+  if(lista.length===0){ await modalAlert("Nenhuma cirurgia agendada para "+formatDate(fData), 'Sem Cirurgias'); return; }
 
   const {jsPDF} = window.jspdf;
   let doc = new jsPDF('landscape','mm','a4');
@@ -3781,7 +3886,7 @@ async function toggleEquipamento(id){
     await DB.saveEquipConfig(id, false);
     showToast('✓ '+id+' reativado');
   } else {
-    let motivo = prompt('Motivo da indisponibilidade de '+id+':');
+    let motivo = await modalPrompt('Motivo da indisponibilidade de '+id+':', '', '🚫 Desativar Equipamento');
     if(motivo === null) return;
     equipDesativados[id] = motivo || 'Não informado';
     await DB.saveEquipConfig(id, true);
@@ -3850,7 +3955,7 @@ function cancelarEdicao(){ editandoCRM = null; renderMedicos(); }
 async function salvarEdicao(crm){
   let nome = document.getElementById('edit-nome-'+crm).value.trim();
   let espec = document.getElementById('edit-espec-'+crm).value.trim();
-  if(!nome){ alert('Nome obrigatório'); return; }
+  if(!nome){ await modalAlert('Nome obrigatório', 'Campo Obrigatório'); return; }
   let ok = await DB.upsertMedico({crm, nome, uf:'SP', especialidade:espec, origem:'editado'});
   if(ok){
     await DB.loadMedicos();
@@ -3865,7 +3970,7 @@ async function cadastrarMedico(){
   let crm = document.getElementById("cadMedCRM").value.trim();
   let nome = document.getElementById("cadMedNome").value.trim();
   let espec = document.getElementById("cadMedEspec").value.trim();
-  if(!crm || !nome){ alert("CRM e Nome são obrigatórios."); return; }
+  if(!crm || !nome){ await modalAlert("CRM e Nome são obrigatórios.", "Campos Obrigatórios"); return; }
   let ok = await DB.upsertMedico({crm, nome, uf:'SP', especialidade:espec, origem:'manual'});
   if(ok){
     await DB.loadMedicos();
@@ -3880,7 +3985,7 @@ async function cadastrarMedico(){
 }
 
 async function excluirMedicoNovo(crm){
-  if(confirm("Excluir médico CRM "+crm+"?")){
+  if(await modalConfirm("Excluir médico CRM "+crm+"?", "⚠️ Excluir Médico")){
     await DB.deleteMedico(crm);
     await DB.loadMedicos();
     construirIndice();
@@ -3964,7 +4069,7 @@ function cancelarEdicaoConv(){ editandoConv = null; renderConvenios(); }
 async function salvarEdicaoConv(sigla){
   let nome = document.getElementById('edit-conv-nome-'+sigla).value.trim();
   let grupo = document.getElementById('edit-conv-grupo-'+sigla).value;
-  if(!nome){ alert('Nome obrigatório'); return; }
+  if(!nome){ await modalAlert('Nome obrigatório', 'Campo Obrigatório'); return; }
   await DB.upsertConvenio({sigla, nome, grupo, origem:'editado'});
   await DB.loadConvenios();
   editandoConv = null; renderConvenios();
@@ -3975,7 +4080,7 @@ async function cadastrarConvenio(){
   let sigla = document.getElementById("cadConvSigla").value.trim().toUpperCase();
   let nome = document.getElementById("cadConvNome").value.trim();
   let grupo = document.getElementById("cadConvGrupo").value;
-  if(!sigla || !nome){ alert("Sigla e Nome são obrigatórios."); return; }
+  if(!sigla || !nome){ await modalAlert("Sigla e Nome são obrigatórios.", "Campos Obrigatórios"); return; }
   await DB.upsertConvenio({sigla, nome, grupo, origem:'manual'});
   await DB.loadConvenios();
   document.getElementById("cadConvSigla").value='';
@@ -3985,7 +4090,7 @@ async function cadastrarConvenio(){
 }
 
 async function excluirConvNovo(sigla){
-  if(confirm("Excluir convênio "+sigla+"?")){
+  if(await modalConfirm("Excluir convênio "+sigla+"?", "⚠️ Excluir Convênio")){
     await DB.deleteConvenio(sigla);
     await DB.loadConvenios();
     renderConvenios();
@@ -4049,7 +4154,7 @@ function cancelarEdicaoTuss(){ editandoTuss = null; renderTUSSList(); }
 
 async function salvarEdicaoTuss(cod){
   let desc = document.getElementById('edit-tuss-desc-'+cod).value.trim();
-  if(!desc){ alert('Descrição obrigatória'); return; }
+  if(!desc){ await modalAlert('Descrição obrigatória', 'Campo Obrigatório'); return; }
   await DB.upsertTUSS({cod, desc, origem:'editado'});
   await DB.loadTUSS();
   editandoTuss = null; renderTUSSList();
@@ -4059,7 +4164,7 @@ async function salvarEdicaoTuss(cod){
 async function cadastrarTUSS(){
   let cod = document.getElementById("cadTussCod").value.trim();
   let desc = document.getElementById("cadTussDesc").value.trim();
-  if(!cod || !desc){ alert("Código e Descrição são obrigatórios."); return; }
+  if(!cod || !desc){ await modalAlert("Código e Descrição são obrigatórios.", "Campos Obrigatórios"); return; }
   await DB.upsertTUSS({cod, desc, origem:'manual'});
   await DB.loadTUSS();
   document.getElementById("cadTussCod").value='';
@@ -4069,7 +4174,7 @@ async function cadastrarTUSS(){
 }
 
 async function excluirTussNovo(cod){
-  if(confirm("Excluir TUSS "+cod+"?")){
+  if(await modalConfirm("Excluir TUSS "+cod+"?", "⚠️ Excluir TUSS")){
     await DB.deleteTUSS(cod);
     await DB.loadTUSS();
     renderTUSSList();
